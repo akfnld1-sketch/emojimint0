@@ -1,3 +1,8 @@
+window.EMOTIMINT_DATA = {
+  I18N: {},
+  RULES: {},
+  PRESETS: {}
+};
 // frontend/js/data.js
 "use strict";
 
