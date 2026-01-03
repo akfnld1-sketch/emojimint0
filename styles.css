@@ -1,0 +1,390 @@
+:root {
+  --bg: #f4f5fb;
+  --card-bg: #ffffff;
+  --border-soft: #e5e7eb;
+  --text-main: #111827;
+  --text-sub: #6b7280;
+  --primary: #4f46e5;
+  --primary-dark: #4338ca;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --accent: #f97316;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  background: var(--bg);
+  color: var(--text-main);
+  font-size: 20px; /* 시니어 기준 크게 */
+  line-height: 1.8;
+}
+
+.app-root {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo-icon {
+  font-size: 44px;
+}
+
+.logo-title {
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.logo-sub {
+  font-size: 19px;
+  color: var(--text-sub);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 15px;
+  margin-left: 6px;
+}
+
+.badge-beta {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.badge-global {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.lang-switch {
+  display: flex;
+  gap: 4px;
+}
+
+.lang-btn {
+  border: none;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.lang-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.nav-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.nav-btn {
+  text-decoration: none;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 17px;
+  background: #111827;
+  color: #ffffff;
+}
+
+.nav-btn-secondary {
+  background: #374151;
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 카드 공통 */
+.card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 20px 20px 22px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--border-soft);
+}
+
+.card-header h2 {
+  margin: 0 0 4px;
+  font-size: 23px;
+}
+
+.card-header p {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 17px;
+}
+
+.card-body {
+  margin-top: 16px;
+}
+
+/* 사용 설명서 아코디언 카드 */
+.card-guide {
+  padding: 0;
+}
+
+.guide-toggle {
+  width: 100%;
+  padding: 18px 20px;
+  background: transparent;
+  border: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.guide-toggle-main {
+  text-align: left;
+}
+
+.guide-toggle-title {
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.guide-toggle-sub {
+  font-size: 16px;
+  color: var(--text-sub);
+  margin-top: 2px;
+}
+
+.guide-toggle-icon {
+  font-size: 22px;
+  margin-left: 10px;
+  transition: transform 0.2s ease;
+}
+
+.guide-toggle[aria-expanded="true"] .guide-toggle-icon {
+  transform: rotate(180deg);
+}
+
+.guide-body {
+  border-top: 1px solid var(--border-soft);
+  padding: 0 20px 0;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    max-height 0.25s ease,
+    opacity 0.25s ease,
+    padding 0.25s ease;
+}
+
+.guide-body.open {
+  max-height: 500px; /* 충분히 크게 */
+  opacity: 1;
+  padding: 6px 20px 16px;
+}
+
+.guide-steps {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  font-size: 17px;
+}
+
+/* 폼 그리드 */
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+select {
+  width: 100%;
+  padding: 11px 13px;
+  font-size: 18px;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+  background: #f9fafb;
+}
+
+select:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+/* 고급 옵션 섹션 */
+.advanced-section {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px dashed #d1d5db;
+}
+
+.advanced-title {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+
+.advanced-desc {
+  margin: 0 0 10px;
+  font-size: 16px;
+  color: var(--text-sub);
+}
+
+.advanced-grid {
+  margin-top: 6px;
+}
+
+/* 버튼들 */
+.btn {
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-size: 18px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+.btn-outline {
+  background: #ffffff;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+}
+
+.btn-outline:hover {
+  background: #eef2ff;
+}
+
+.btn-success {
+  background: var(--success);
+  color: #ffffff;
+}
+
+.btn-copy {
+  background: #0ea5e9;
+  color: #ffffff;
+}
+
+.btn-copy:hover {
+  background: #0284c7;
+}
+
+/* 결과 영역 */
+.result-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.results-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.result-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  border-radius: 14px;
+  border: 1px solid var(--border-soft);
+  padding: 10px 10px 10px 14px;
+  background: #f9fafb;
+}
+
+.result-index {
+  font-size: 16px;
+  color: var(--text-sub);
+  margin-bottom: 4px;
+}
+
+.result-text {
+  width: 100%;
+  border: none;
+  resize: vertical;
+  min-height: 70px;
+  max-height: 160px;
+  font-size: 16px;
+  line-height: 1.6;
+  background: transparent;
+  outline: none;
+}
+
+.result-copy-btn {
+  align-self: center;
+  min-width: 90px;
+}
+
+/* 모바일 대응 */
+@media (max-width: 900px) {
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .app-root {
+    padding: 16px 10px 30px;
+  }
+
+  body {
+    font-size: 18px;
+  }
+}

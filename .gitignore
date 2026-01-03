@@ -1,0 +1,25 @@
+# ======================
+# 🔒 PRIVATE / IP PROTECT
+# ======================
+
+# master prompt / core logic
+masterPrompt*
+master_prompt*
+prompt*
+prompts/
+rules/
+core/private/
+backend/core/private/
+
+# data / rules
+data.private.js
+rules.json
+secrets.json
+
+# env
+.env
+.env.*
+
+# build / system
+node_modules/
+.DS_Store

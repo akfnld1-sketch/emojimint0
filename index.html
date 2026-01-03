@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>EmotiMint Studio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./main.js"></script>
+  </head>
+  <body>
+    <div class="app-root">
+      <header class="app-header">
+        <div class="logo-area">
+          <div class="logo-icon">😊</div>
+          <div>
+            <div class="logo-title" data-i18n="app.title">
+              EmotiMint Studio
+            </div>
+            <div class="logo-sub" data-i18n="app.subtitle">
+              이모지 민트 프롬프트 생성기
+            </div>
+          </div>
+          <span class="badge badge-beta" data-i18n="badge.beta">BETA</span>
+          <span class="badge badge-global" data-i18n="badge.global">GLOBAL</span>
+        </div>
+
+        <div class="header-right">
+          <div class="lang-switch">
+            <button class="lang-btn active" data-lang="ko">KO</button>
+            <button class="lang-btn" data-lang="en">EN</button>
+            <button class="lang-btn" data-lang="ja">JA</button>
+            <button class="lang-btn" data-lang="zh">ZH</button>
+          </div>
+          <div class="nav-links">
+            <a
+              href="https://www.recraft.ai"
+              target="_blank"
+              class="nav-btn"
+              data-i18n="nav.recraft"
+              >Recraft 바로가기</a
+            >
+            <a
+              href="https://cafe.naver.com/aibiz"
+              target="_blank"
+              class="nav-btn nav-btn-secondary"
+              data-i18n="nav.cafe"
+              >AI BIZ 네이버 카페</a
+            >
+          </div>
+        </div>
+      </header>
+
+      <main class="app-main">
+        <!-- 사용설명 아코디언 -->
+        <section class="card guide-card">
+          <details class="guide-details" open>
+            <summary class="guide-summary">
+              <span data-i18n="guide.title">사용 설명서</span>
+            </summary>
+            <div class="guide-body" data-i18n="guide.body">
+              1) 캐릭터를 대분류 → 소분류 → 세분화 순서로 선택합니다.<br />
+              2) 감정·상황 세트, 생성 개수, 배경 테마를 선택합니다.<br />
+              3) 필요하다면 고급 옵션에서 의상, 색상, 컨셉, 소품을 직접 지정합니다.<br />
+              4) ‘프롬프트 생성하기’를 누른 뒤, 각 항목 복사 또는 전체 프롬프트 복사를 이용하세요.
+            </div>
+          </details>
+        </section>
+
+        <!-- 캐릭터 선택 -->
+        <section class="card">
+          <div class="card-header">
+            <h2 data-i18n="section.character.title">캐릭터 선택</h2>
+            <p data-i18n="section.character.desc">
+              대분류 → 소분류 → 세분화 캐릭터를 순서대로 골라주세요.
+            </p>
+          </div>
+          <div class="card-body grid-3">
+            <div class="field">
+              <label data-i18n="labels.category">대분류</label>
+              <select id="categorySelect"></select>
+            </div>
+            <div class="field">
+              <label data-i18n="labels.subCategory">소분류</label>
+              <select id="subCategorySelect"></select>
+            </div>
+            <div class="field">
+              <label data-i18n="labels.detail">세분화 캐릭터</label>
+              <select id="detailSelect"></select>
+            </div>
+          </div>
+        </section>
+
+        <!-- 고급 옵션 (옷 / 색상 / 컨셉 / 소품) -->
+        <section class="card card-advanced">
+          <div class="card-header">
+            <h2 data-i18n="section.advanced.title">고급 옵션 (옷 / 색상)</h2>
+            <p data-i18n="section.advanced.desc">
+              기본값은 자동입니다. 필요할 때만 의상 스타일과 색상을 직접 선택해 세부 연출을 조절하세요.
+            </p>
+          </div>
+          <div class="card-body grid-2">
+            <!-- 의상 -->
+            <div class="field">
+              <label for="outfitSelect" data-i18n="labels.outfit">의상 스타일</label>
+              <select id="outfitSelect"></select>
+            </div>
+
+            <!-- 색상 -->
+            <div class="field">
+              <label for="colorSelect" data-i18n="labels.color">색상</label>
+              <select id="colorSelect"></select>
+            </div>
+
+            <!-- ✅ 컨셉 스타일 -->
+            <div class="field">
+              <label for="conceptStyleSelect" data-i18n="labels.conceptStyle">
+                컨셉 스타일
+              </label>
+              <select id="conceptStyleSelect"></select>
+            </div>
+
+            <!-- ✅ 소품 / 물건 -->
+            <div class="field">
+              <label for="propSelect" data-i18n="labels.propItem">
+                소품 / 물건
+              </label>
+              <select id="propSelect"></select>
+            </div>
+          </div>
+        </section>
+
+        <!-- 감정 / 개수 / 테마 -->
+        <section class="card">
+          <div class="card-header">
+            <h2 data-i18n="section.emotion.title">감정·상황 세트</h2>
+            <p data-i18n="section.emotion.desc">
+              일상 / 직장 / 연인 / 크리스마스 / 설날 / 연말 세트 중 하나와
+              생성 개수, 배경 테마를 선택합니다.
+            </p>
+          </div>
+          <div class="card-body grid-3">
+            <div class="field">
+              <label data-i18n="labels.emotionSet">감정·상황 세트</label>
+              <select id="emotionSelect"></select>
+            </div>
+            <div class="field">
+              <label data-i18n="labels.count">생성 개수</label>
+              <select id="countSelect"></select>
+            </div>
+            <div class="field">
+              <label data-i18n="labels.theme">배경 테마</label>
+              <select id="themeSelect"></select>
+            </div>
+          </div>
+        </section>
+
+        <!-- 결과 -->
+        <section class="card">
+          <div class="card-header">
+            <h2 data-i18n="section.result.title">프롬프트 결과</h2>
+            <p data-i18n="section.result.desc">
+              각 프롬프트 오른쪽 복사 버튼을 누르면 색이 바뀌며, 한 번에 전체
+              복사도 가능합니다.
+            </p>
+          </div>
+          <div class="card-body">
+            <div class="result-actions">
+              <button
+                id="generateBtn"
+                class="btn btn-primary"
+                data-i18n="buttons.generate"
+              >
+                프롬프트 생성하기
+              </button>
+              <button
+                id="copyAllBtn"
+                class="btn btn-outline"
+                data-i18n="buttons.copyAll"
+              >
+                전체 프롬프트 복사
+              </button>
+            </div>
+            <div id="resultsContainer" class="results-container"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./data.js"></script>
+    <script src="./main.js"></script>
+  </body>
+</html>
