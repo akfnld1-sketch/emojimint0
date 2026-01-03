@@ -1,4 +1,14 @@
 window.EMOTIMINT_DATA = {
+  I18N: {
+    ko: {},
+    en: {},
+    ja: {},
+    zh: {}
+  },
+  PRESETS: {},
+  RULES: {}
+};
+window.EMOTIMINT_DATA = {
   I18N: {},
   RULES: {},
   PRESETS: {}
