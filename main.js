@@ -1,3 +1,5 @@
+const EMO_DATA = window.EMOTIMINT_DATA || {};
+const I18N = EMO_DATA.I18N || {};
 // frontend/js/main.js
 "use strict";
 
