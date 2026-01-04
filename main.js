@@ -16,7 +16,7 @@
   const I18N = EMO_DATA.I18N || {};
   const COUNT_OPTIONS = Array.isArray(EMO_DATA.COUNT_OPTIONS)
     ? EMO_DATA.COUNT_OPTIONS
-    : [9, 14, 24, 36, 50];
+    : [1, 9, 24, 50, 100];
 
   const CHARACTER_TREE = EMO_DATA.CHARACTER_TREE || {};
   const DETAIL_LABELS = EMO_DATA.DETAIL_LABELS || {};
@@ -68,7 +68,7 @@
     selectedDetailId: null,
     selectedEmotionSetId: "daily",
     selectedThemeId: "white",
-    selectedCount: COUNT_OPTIONS[2] ?? 24,
+    selectedCount: COUNT_OPTIONS.includes(24) ? 24 : (COUNT_OPTIONS[0] ?? 24),
     selectedOutfitId: "auto",
     selectedColorId: "auto",
     selectedConceptStyleId: "auto",
@@ -91,7 +91,11 @@
   const copyAllBtn = $("copyAllBtn");
   const resultsContainer = $("resultsContainer");
 
-  if (!categorySelect || !subCategorySelect || !detailSelect || !emotionSelect || !countSelect || !themeSelect || !generateBtn || !copyAllBtn || !resultsContainer) {
+  if (
+    !categorySelect || !subCategorySelect || !detailSelect ||
+    !emotionSelect || !countSelect || !themeSelect ||
+    !generateBtn || !copyAllBtn || !resultsContainer
+  ) {
     console.error("[EmotiMint] 필수 DOM 요소를 찾지 못했습니다. index.html의 id들을 확인하세요.");
     return;
   }
@@ -126,30 +130,51 @@
   }
 
   // ─────────────────────────────────────────────
-  // 5. Select 렌더
+  // 5. 트리 접근 (id/key 혼용 안전)
+  // ─────────────────────────────────────────────
+  function getCategoryById(id) {
+    if (!id) return null;
+    if (CHARACTER_TREE[id]) return CHARACTER_TREE[id];
+    return Object.values(CHARACTER_TREE).find((c) => c?.id === id) || null;
+  }
+
+  function getSubById(cat, subId) {
+    if (!cat || !subId) return null;
+    if (cat.subCategories?.[subId]) return cat.subCategories[subId];
+    return Object.values(cat.subCategories || {}).find((s) => s?.id === subId) || null;
+  }
+
+  // ─────────────────────────────────────────────
+  // 6. Select 렌더 + 자동 기본값 세팅
   // ─────────────────────────────────────────────
   function renderCategoryOptions() {
     categorySelect.innerHTML = "";
+
     const placeholder = document.createElement("option");
     placeholder.value = "";
     placeholder.textContent = "—";
     categorySelect.appendChild(placeholder);
 
-    Object.values(CHARACTER_TREE).forEach((cat) => {
+    const cats = Object.values(CHARACTER_TREE);
+    cats.forEach((cat) => {
       const opt = document.createElement("option");
       opt.value = cat.id;
       opt.textContent = labelFrom(cat);
-      if (cat.id === state.selectedCategoryId) opt.selected = true;
       categorySelect.appendChild(opt);
     });
+
+    // ✅ 기본값 자동 세팅 (비어있으면 첫 카테고리)
+    if (!state.selectedCategoryId && cats.length) {
+      state.selectedCategoryId = cats[0].id;
+    }
+    categorySelect.value = state.selectedCategoryId || "";
   }
 
   function renderSubCategoryOptions() {
     subCategorySelect.innerHTML = "";
     detailSelect.innerHTML = "";
 
-    if (!state.selectedCategoryId) return;
-    const cat = CHARACTER_TREE[state.selectedCategoryId];
+    const cat = getCategoryById(state.selectedCategoryId);
     if (!cat) return;
 
     const placeholder = document.createElement("option");
@@ -157,21 +182,26 @@
     placeholder.textContent = "—";
     subCategorySelect.appendChild(placeholder);
 
-    Object.values(cat.subCategories || {}).forEach((sub) => {
+    const subs = Object.values(cat.subCategories || {});
+    subs.forEach((sub) => {
       const opt = document.createElement("option");
       opt.value = sub.id;
       opt.textContent = labelFrom(sub);
-      if (sub.id === state.selectedSubCategoryId) opt.selected = true;
       subCategorySelect.appendChild(opt);
     });
+
+    // ✅ 기본값 자동 세팅 (비어있으면 첫 소분류)
+    if (!state.selectedSubCategoryId && subs.length) {
+      state.selectedSubCategoryId = subs[0].id;
+    }
+    subCategorySelect.value = state.selectedSubCategoryId || "";
   }
 
   function renderDetailOptions() {
     detailSelect.innerHTML = "";
-    if (!state.selectedCategoryId || !state.selectedSubCategoryId) return;
 
-    const cat = CHARACTER_TREE[state.selectedCategoryId];
-    const sub = cat?.subCategories?.[state.selectedSubCategoryId];
+    const cat = getCategoryById(state.selectedCategoryId);
+    const sub = getSubById(cat, state.selectedSubCategoryId);
     if (!sub) return;
 
     const placeholder = document.createElement("option");
@@ -179,24 +209,34 @@
     placeholder.textContent = "—";
     detailSelect.appendChild(placeholder);
 
-    (sub.details || []).forEach((detailId) => {
+    const details = Array.isArray(sub.details) ? sub.details : [];
+    details.forEach((detailId) => {
       const opt = document.createElement("option");
       opt.value = detailId;
       opt.textContent = detailLabel(detailId, state.lang);
-      if (detailId === state.selectedDetailId) opt.selected = true;
       detailSelect.appendChild(opt);
     });
+
+    // ✅ 기본값 자동 세팅 (비어있으면 첫 세분화)
+    if (!state.selectedDetailId && details.length) {
+      state.selectedDetailId = details[0];
+    }
+    detailSelect.value = state.selectedDetailId || "";
   }
 
   function renderEmotionOptions() {
     emotionSelect.innerHTML = "";
-    Object.values(EMOTION_SETS_INFO).forEach((set) => {
+    const sets = Object.values(EMOTION_SETS_INFO);
+
+    sets.forEach((set) => {
       const opt = document.createElement("option");
       opt.value = set.id;
       opt.textContent = labelFrom(set);
-      if (set.id === state.selectedEmotionSetId) opt.selected = true;
       emotionSelect.appendChild(opt);
     });
+
+    if (!state.selectedEmotionSetId && sets.length) state.selectedEmotionSetId = sets[0].id;
+    emotionSelect.value = state.selectedEmotionSetId || "";
   }
 
   function renderCountOptions() {
@@ -205,20 +245,28 @@
       const opt = document.createElement("option");
       opt.value = String(num);
       opt.textContent = String(num);
-      if (num === state.selectedCount) opt.selected = true;
       countSelect.appendChild(opt);
     });
+
+    if (!COUNT_OPTIONS.includes(state.selectedCount)) {
+      state.selectedCount = COUNT_OPTIONS[0] ?? 24;
+    }
+    countSelect.value = String(state.selectedCount);
   }
 
   function renderThemeOptions() {
     themeSelect.innerHTML = "";
-    Object.values(THEMES_INFO).forEach((theme) => {
+    const themes = Object.values(THEMES_INFO);
+
+    themes.forEach((theme) => {
       const opt = document.createElement("option");
       opt.value = theme.id;
       opt.textContent = labelFrom(theme);
-      if (theme.id === state.selectedThemeId) opt.selected = true;
       themeSelect.appendChild(opt);
     });
+
+    if (!state.selectedThemeId && themes.length) state.selectedThemeId = themes[0].id;
+    themeSelect.value = state.selectedThemeId || "";
   }
 
   function renderOutfitOptions() {
@@ -228,9 +276,9 @@
       const opt = document.createElement("option");
       opt.value = o.id;
       opt.textContent = labelFrom(o);
-      if (o.id === state.selectedOutfitId) opt.selected = true;
       outfitSelect.appendChild(opt);
     });
+    outfitSelect.value = state.selectedOutfitId || "auto";
   }
 
   function renderColorOptions() {
@@ -240,9 +288,9 @@
       const opt = document.createElement("option");
       opt.value = c.id;
       opt.textContent = labelFrom(c);
-      if (c.id === state.selectedColorId) opt.selected = true;
       colorSelect.appendChild(opt);
     });
+    colorSelect.value = state.selectedColorId || "auto";
   }
 
   function renderConceptStyleOptions() {
@@ -252,9 +300,9 @@
       const opt = document.createElement("option");
       opt.value = cs.id;
       opt.textContent = labelFrom(cs);
-      if (cs.id === state.selectedConceptStyleId) opt.selected = true;
       conceptStyleSelect.appendChild(opt);
     });
+    conceptStyleSelect.value = state.selectedConceptStyleId || "auto";
   }
 
   function renderPropOptions() {
@@ -264,9 +312,9 @@
       const opt = document.createElement("option");
       opt.value = p.id;
       opt.textContent = labelFrom(p);
-      if (p.id === state.selectedPropItemId) opt.selected = true;
       propSelect.appendChild(opt);
     });
+    propSelect.value = state.selectedPropItemId || "auto";
   }
 
   function renderAllSelects() {
@@ -283,7 +331,7 @@
   }
 
   // ─────────────────────────────────────────────
-  // 6. 이벤트 바인딩
+  // 7. 이벤트 바인딩
   // ─────────────────────────────────────────────
   categorySelect.addEventListener("change", () => {
     state.selectedCategoryId = categorySelect.value || null;
@@ -331,7 +379,7 @@
   });
 
   // ─────────────────────────────────────────────
-  // 7. 결과 렌더링
+  // 8. 결과 렌더링
   // ─────────────────────────────────────────────
   function renderPromptList(prompts) {
     resultsContainer.innerHTML = "";
@@ -398,15 +446,14 @@
   });
 
   // ─────────────────────────────────────────────
-  // 8. 로컬 생성 (GitHub Pages용)
+  // 9. 로컬 생성 (GitHub Pages용)
   // ─────────────────────────────────────────────
   function getSelectedMeta() {
-    const cat = CHARACTER_TREE[state.selectedCategoryId];
-    const sub = cat?.subCategories?.[state.selectedSubCategoryId];
+    const cat = getCategoryById(state.selectedCategoryId);
+    const sub = getSubById(cat, state.selectedSubCategoryId);
     const detailName = state.selectedDetailId ? detailLabel(state.selectedDetailId, state.lang) : "";
 
-    const emotionSet = EMOTION_SETS_INFO[state.selectedEmotionSetId];
-    const theme = THEMES_INFO[state.selectedThemeId];
+    const theme = THEMES_INFO[state.selectedThemeId] || Object.values(THEMES_INFO)[0];
 
     const outfit = OUTFIT_INFO[state.selectedOutfitId] || OUTFIT_INFO.auto || { id: "auto", labels: { ko: "자동", en: "auto" } };
     const color = COLOR_INFO[state.selectedColorId] || COLOR_INFO.auto || { id: "auto", labels: { ko: "자동", en: "auto" } };
@@ -418,7 +465,6 @@
       categoryName: cat ? labelFrom(cat) : "",
       subName: sub ? labelFrom(sub) : "",
       detailName,
-      emotionSet,
       theme,
       outfit,
       color,
@@ -428,7 +474,7 @@
   }
 
   function getEmotionItems(setId) {
-    const set = EMOTION_SETS_INFO[setId];
+    const set = EMOTION_SETS_INFO[setId] || Object.values(EMOTION_SETS_INFO).find((s) => s?.id === setId);
     const items = set?.items || set?.emotions || set?.list || [];
     return Array.isArray(items) ? items : [];
   }
@@ -443,9 +489,7 @@
     const propText = meta.prop?.id !== "auto" ? labelFrom(meta.prop) : "";
 
     const themeText = meta.theme ? labelFrom(meta.theme) : "";
-
     const characterLine = meta.detailName || meta.subName || meta.categoryName || "Character";
-
     const emotionLine = state.lang === "ko" ? koLabel : (enLabel || koLabel);
 
     const lines = [
@@ -482,7 +526,7 @@
   }
 
   // ─────────────────────────────────────────────
-  // 9. API 호출 + 실패 시 로컬 fallback
+  // 10. API 호출 + 실패 시 로컬 fallback
   // ─────────────────────────────────────────────
   function isGitHubPages() {
     return /github\.io$/i.test(location.hostname);
@@ -498,7 +542,7 @@
       return;
     }
 
-    // ✅ GitHub Pages면 API 시도 자체를 건너뜀 (깔끔)
+    // ✅ GitHub Pages면 API 시도 자체를 건너뜀
     if (isGitHubPages() || !API_BASE) {
       renderPromptList(generatePromptsLocal());
       return;
@@ -544,7 +588,7 @@
   generateBtn.addEventListener("click", generatePrompts);
 
   // ─────────────────────────────────────────────
-  // 10. 초기화
+  // 11. 초기화
   // ─────────────────────────────────────────────
   function init() {
     applyStaticI18n();
