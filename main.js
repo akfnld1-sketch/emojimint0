@@ -1,22 +1,23 @@
-const EMO_DATA = window.EMOTIMINT_DATA || {};
-const I18N = EMO_DATA.I18N || {};
-// frontend/js/main.js
+// main.js
 "use strict";
 
 (function () {
-  const API_BASE = ""; // 같은 도메인에서 API 호출 (Render 같은 서버 붙일 때 사용)
+  // ✅ API 서버 붙일 때만 사용 (Render 등)
+  const API_BASE = "";
 
   // ✅ 0) 안전 가드: 데이터가 없으면 터지지 않게
   const EMO_DATA = window.EMOTIMINT_DATA || null;
   if (!EMO_DATA) {
     console.error("[EmotiMint] window.EMOTIMINT_DATA가 없습니다. data.js 로드 순서를 확인하세요.");
-    // 최소한 UI가 완전히 죽지 않게 return
     return;
   }
 
   // ✅ 구조분해도 안전하게 (없으면 기본값)
   const I18N = EMO_DATA.I18N || {};
-  const COUNT_OPTIONS = Array.isArray(EMO_DATA.COUNT_OPTIONS) ? EMO_DATA.COUNT_OPTIONS : [9, 14, 24, 36, 50];
+  const COUNT_OPTIONS = Array.isArray(EMO_DATA.COUNT_OPTIONS)
+    ? EMO_DATA.COUNT_OPTIONS
+    : [9, 14, 24, 36, 50];
+
   const CHARACTER_TREE = EMO_DATA.CHARACTER_TREE || {};
   const DETAIL_LABELS = EMO_DATA.DETAIL_LABELS || {};
   const EMOTION_SETS_INFO = EMO_DATA.EMOTION_SETS_INFO || {};
@@ -25,9 +26,8 @@ const I18N = EMO_DATA.I18N || {};
   const COLOR_INFO = EMO_DATA.COLOR_INFO || {};
 
   // ─────────────────────────────────────────────
-  // 1. 컨셉 스타일 & 소품 정의 (이 파일 안에서만 사용)
+  // 1. 컨셉 스타일 & 소품 정의
   // ─────────────────────────────────────────────
-
   const CONCEPT_STYLES = {
     auto: { id: "auto", labels: { ko: "선택 안 함 (기본 컨셉)", en: "No override (default concept)" } },
     words_emotion: { id: "words_emotion", labels: { ko: "손글씨 단어 이모티콘", en: "Handwritten words & doodles" } },
@@ -50,9 +50,8 @@ const I18N = EMO_DATA.I18N || {};
   };
 
   // ─────────────────────────────────────────────
-  // 2. 세분화 캐릭터 라벨 (다국어)
+  // 2. 세분화 캐릭터 라벨
   // ─────────────────────────────────────────────
-
   function detailLabel(id, lang) {
     const info = DETAIL_LABELS[id];
     if (!info) return id;
@@ -62,7 +61,6 @@ const I18N = EMO_DATA.I18N || {};
   // ─────────────────────────────────────────────
   // 3. state + DOM
   // ─────────────────────────────────────────────
-
   const state = {
     lang: "ko",
     selectedCategoryId: null,
@@ -93,7 +91,6 @@ const I18N = EMO_DATA.I18N || {};
   const copyAllBtn = $("copyAllBtn");
   const resultsContainer = $("resultsContainer");
 
-  // ✅ 필수 DOM이 없으면 조용히 종료
   if (!categorySelect || !subCategorySelect || !detailSelect || !emotionSelect || !countSelect || !themeSelect || !generateBtn || !copyAllBtn || !resultsContainer) {
     console.error("[EmotiMint] 필수 DOM 요소를 찾지 못했습니다. index.html의 id들을 확인하세요.");
     return;
@@ -102,7 +99,6 @@ const I18N = EMO_DATA.I18N || {};
   // ─────────────────────────────────────────────
   // 4. i18n
   // ─────────────────────────────────────────────
-
   function getI18nValue(key) {
     const pack = I18N[state.lang] || I18N.ko || {};
     if (Object.prototype.hasOwnProperty.call(pack, key)) return pack[key];
@@ -132,7 +128,6 @@ const I18N = EMO_DATA.I18N || {};
   // ─────────────────────────────────────────────
   // 5. Select 렌더
   // ─────────────────────────────────────────────
-
   function renderCategoryOptions() {
     categorySelect.innerHTML = "";
     const placeholder = document.createElement("option");
@@ -290,7 +285,6 @@ const I18N = EMO_DATA.I18N || {};
   // ─────────────────────────────────────────────
   // 6. 이벤트 바인딩
   // ─────────────────────────────────────────────
-
   categorySelect.addEventListener("change", () => {
     state.selectedCategoryId = categorySelect.value || null;
     state.selectedSubCategoryId = null;
@@ -321,35 +315,16 @@ const I18N = EMO_DATA.I18N || {};
     state.selectedThemeId = themeSelect.value;
   });
 
-  if (outfitSelect) {
-    outfitSelect.addEventListener("change", () => {
-      state.selectedOutfitId = outfitSelect.value || "auto";
-    });
-  }
-  if (colorSelect) {
-    colorSelect.addEventListener("change", () => {
-      state.selectedColorId = colorSelect.value || "auto";
-    });
-  }
-  if (conceptStyleSelect) {
-    conceptStyleSelect.addEventListener("change", () => {
-      state.selectedConceptStyleId = conceptStyleSelect.value || "auto";
-    });
-  }
-  if (propSelect) {
-    propSelect.addEventListener("change", () => {
-      state.selectedPropItemId = propSelect.value || "auto";
-    });
-  }
+  if (outfitSelect) outfitSelect.addEventListener("change", () => (state.selectedOutfitId = outfitSelect.value || "auto"));
+  if (colorSelect) colorSelect.addEventListener("change", () => (state.selectedColorId = colorSelect.value || "auto"));
+  if (conceptStyleSelect) conceptStyleSelect.addEventListener("change", () => (state.selectedConceptStyleId = conceptStyleSelect.value || "auto"));
+  if (propSelect) propSelect.addEventListener("change", () => (state.selectedPropItemId = propSelect.value || "auto"));
 
   document.querySelectorAll(".lang-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const lang = btn.getAttribute("data-lang");
-      state.lang = lang;
-
+      state.lang = btn.getAttribute("data-lang") || "ko";
       document.querySelectorAll(".lang-btn").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-
       applyStaticI18n();
       renderAllSelects();
     });
@@ -358,7 +333,6 @@ const I18N = EMO_DATA.I18N || {};
   // ─────────────────────────────────────────────
   // 7. 결과 렌더링
   // ─────────────────────────────────────────────
-
   function renderPromptList(prompts) {
     resultsContainer.innerHTML = "";
     if (!Array.isArray(prompts) || !prompts.length) return;
@@ -373,13 +347,13 @@ const I18N = EMO_DATA.I18N || {};
       const indexEl = document.createElement("div");
       indexEl.className = "result-index";
 
-      const koLabel = p && p.koLabel ? ` (${p.koLabel})` : "";
+      const koLabel = p?.koLabel ? ` (${p.koLabel})` : "";
       indexEl.textContent = `#${idx + 1}${koLabel}`;
 
       const textarea = document.createElement("textarea");
       textarea.className = "result-text";
       textarea.readOnly = true;
-      textarea.value = (p && p.text) || "";
+      textarea.value = p?.text || "";
 
       left.appendChild(indexEl);
       left.appendChild(textarea);
@@ -388,7 +362,7 @@ const I18N = EMO_DATA.I18N || {};
       btn.className = "btn btn-copy result-copy-btn";
       btn.textContent = t("buttons.copy");
       btn.addEventListener("click", () => {
-        const toCopy = (p && p.text) || "";
+        const toCopy = p?.text || "";
         if (!toCopy) return;
         navigator.clipboard.writeText(toCopy);
         btn.classList.remove("btn-copy");
@@ -424,17 +398,19 @@ const I18N = EMO_DATA.I18N || {};
   });
 
   // ─────────────────────────────────────────────
-  // 8. 로컬 생성 (GitHub Pages용 fallback)
+  // 8. 로컬 생성 (GitHub Pages용)
   // ─────────────────────────────────────────────
-
   function getSelectedMeta() {
     const cat = CHARACTER_TREE[state.selectedCategoryId];
     const sub = cat?.subCategories?.[state.selectedSubCategoryId];
     const detailName = state.selectedDetailId ? detailLabel(state.selectedDetailId, state.lang) : "";
+
     const emotionSet = EMOTION_SETS_INFO[state.selectedEmotionSetId];
     const theme = THEMES_INFO[state.selectedThemeId];
-    const outfit = OUTFIT_INFO[state.selectedOutfitId] || OUTFIT_INFO.auto || { id: "auto", labels: { ko: "기본", en: "default" } };
-    const color = COLOR_INFO[state.selectedColorId] || COLOR_INFO.auto || { id: "auto", labels: { ko: "기본", en: "default" } };
+
+    const outfit = OUTFIT_INFO[state.selectedOutfitId] || OUTFIT_INFO.auto || { id: "auto", labels: { ko: "자동", en: "auto" } };
+    const color = COLOR_INFO[state.selectedColorId] || COLOR_INFO.auto || { id: "auto", labels: { ko: "자동", en: "auto" } };
+
     const concept = CONCEPT_STYLES[state.selectedConceptStyleId] || CONCEPT_STYLES.auto;
     const prop = PROP_ITEMS[state.selectedPropItemId] || PROP_ITEMS.auto;
 
@@ -453,15 +429,12 @@ const I18N = EMO_DATA.I18N || {};
 
   function getEmotionItems(setId) {
     const set = EMOTION_SETS_INFO[setId];
-    // data.js 쪽 구조가 다를 수 있어서 최대한 유연하게
-    // 가능한 키들: set.items / set.emotions / set.list
     const items = set?.items || set?.emotions || set?.list || [];
     return Array.isArray(items) ? items : [];
   }
 
   function buildOnePrompt(meta, emotionItem, idx) {
-    // emotionItem도 구조가 다를 수 있어서 유연하게
-    const koLabel = emotionItem?.ko || emotionItem?.labelKo || emotionItem?.nameKo || emotionItem?.label || `감정${idx + 1}`;
+    const koLabel = emotionItem?.ko || emotionItem?.labelKo || emotionItem?.nameKo || emotionItem?.label || `감정 ${idx + 1}`;
     const enLabel = emotionItem?.en || emotionItem?.labelEn || emotionItem?.nameEn || "";
 
     const outfitText = meta.outfit?.id !== "auto" ? labelFrom(meta.outfit) : "";
@@ -471,10 +444,13 @@ const I18N = EMO_DATA.I18N || {};
 
     const themeText = meta.theme ? labelFrom(meta.theme) : "";
 
-    // ✅ 여기서 “마스터 프롬프트”는 공개하지 않고, UI용 조합만 생성
+    const characterLine = meta.detailName || meta.subName || meta.categoryName || "Character";
+
+    const emotionLine = state.lang === "ko" ? koLabel : (enLabel || koLabel);
+
     const lines = [
-      `Character: ${meta.detailName || meta.subName || meta.categoryName}`,
-      `Emotion: ${state.lang === "ko" ? koLabel : (enLabel || koLabel)}`,
+      `Character: ${characterLine}`,
+      `Emotion: ${emotionLine}`,
       themeText ? `Background: ${themeText}` : "",
       outfitText ? `Outfit: ${outfitText}` : "",
       colorText ? `Color: ${colorText}` : "",
@@ -485,7 +461,7 @@ const I18N = EMO_DATA.I18N || {};
     ].filter(Boolean);
 
     return {
-      koLabel: state.lang === "ko" ? koLabel : (enLabel || koLabel),
+      koLabel: emotionLine,
       text: lines.join("\n")
     };
   }
@@ -494,13 +470,13 @@ const I18N = EMO_DATA.I18N || {};
     const meta = getSelectedMeta();
     const emotionItems = getEmotionItems(state.selectedEmotionSetId);
 
-    // 감정 세트에 리스트가 없으면, count만큼 더미 라벨 생성
-    const baseList = emotionItems.length ? emotionItems : Array.from({ length: state.selectedCount }, (_, i) => ({ ko: `감정 ${i + 1}` }));
+    const baseList = emotionItems.length
+      ? emotionItems
+      : Array.from({ length: state.selectedCount }, (_, i) => ({ ko: `감정 ${i + 1}` }));
 
     const prompts = [];
     for (let i = 0; i < state.selectedCount; i++) {
-      const item = baseList[i % baseList.length];
-      prompts.push(buildOnePrompt(meta, item, i));
+      prompts.push(buildOnePrompt(meta, baseList[i % baseList.length], i));
     }
     return prompts;
   }
@@ -508,6 +484,9 @@ const I18N = EMO_DATA.I18N || {};
   // ─────────────────────────────────────────────
   // 9. API 호출 + 실패 시 로컬 fallback
   // ─────────────────────────────────────────────
+  function isGitHubPages() {
+    return /github\.io$/i.test(location.hostname);
+  }
 
   async function generatePrompts() {
     if (!state.selectedDetailId) {
@@ -519,8 +498,12 @@ const I18N = EMO_DATA.I18N || {};
       return;
     }
 
-    // ✅ GitHub Pages(정적)에서는 API가 없을 확률이 매우 높음
-    // 일단 API 시도하고, 실패/405/404면 로컬 생성으로 자동 전환
+    // ✅ GitHub Pages면 API 시도 자체를 건너뜀 (깔끔)
+    if (isGitHubPages() || !API_BASE) {
+      renderPromptList(generatePromptsLocal());
+      return;
+    }
+
     const payload = {
       detailId: state.selectedDetailId,
       emotionSetId: state.selectedEmotionSetId,
@@ -539,25 +522,21 @@ const I18N = EMO_DATA.I18N || {};
         body: JSON.stringify(payload)
       });
 
-      // ❌ API가 없거나, Pages에서 405/404 나면 로컬로
       if (!res.ok) {
-        console.warn("[EmotiMint] API 호출 실패 → 로컬 생성 모드로 전환", res.status);
-        const prompts = generatePromptsLocal();
-        renderPromptList(prompts);
+        console.warn("[EmotiMint] API 호출 실패 → 로컬 생성으로 전환", res.status);
+        renderPromptList(generatePromptsLocal());
         return;
       }
 
       const data = await res.json();
-      if (data && data.ok && Array.isArray(data.prompts)) {
+      if (data?.ok && Array.isArray(data.prompts)) {
         renderPromptList(data.prompts);
-        return;
+      } else {
+        console.warn("[EmotiMint] API 응답 형식 불일치 → 로컬 생성으로 전환");
+        renderPromptList(generatePromptsLocal());
       }
-
-      // API 응답 형식이 예상과 다르면 로컬로
-      console.warn("[EmotiMint] API 응답 형식 불일치 → 로컬 생성 모드로 전환");
-      renderPromptList(generatePromptsLocal());
     } catch (err) {
-      console.warn("[EmotiMint] API 에러 → 로컬 생성 모드로 전환", err);
+      console.warn("[EmotiMint] API 에러 → 로컬 생성으로 전환", err);
       renderPromptList(generatePromptsLocal());
     }
   }
@@ -567,7 +546,6 @@ const I18N = EMO_DATA.I18N || {};
   // ─────────────────────────────────────────────
   // 10. 초기화
   // ─────────────────────────────────────────────
-
   function init() {
     applyStaticI18n();
     renderAllSelects();
