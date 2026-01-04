@@ -1,599 +1,645 @@
-// main.js
+// frontend/js/main.js
 "use strict";
 
 (function () {
-  // ✅ API 서버 붙일 때만 사용 (Render 등)
-  const API_BASE = "";
+  // =========================
+  // Helpers
+  // =========================
 
-  // ✅ 0) 안전 가드: 데이터가 없으면 터지지 않게
-  const EMO_DATA = window.EMOTIMINT_DATA || null;
-  if (!EMO_DATA) {
-    console.error("[EmotiMint] window.EMOTIMINT_DATA가 없습니다. data.js 로드 순서를 확인하세요.");
-    return;
+  function qs(sel, root = document) {
+    return root.querySelector(sel);
+  }
+  function qsa(sel, root = document) {
+    return Array.from(root.querySelectorAll(sel));
+  }
+  function clampInt(n, min, max) {
+    const x = parseInt(n, 10);
+    if (Number.isNaN(x)) return min;
+    return Math.max(min, Math.min(max, x));
+  }
+  function escapeHtml(str) {
+    return String(str)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
   }
 
-  // ✅ 구조분해도 안전하게 (없으면 기본값)
-  const I18N = EMO_DATA.I18N || {};
-  const COUNT_OPTIONS = Array.isArray(EMO_DATA.COUNT_OPTIONS)
-    ? EMO_DATA.COUNT_OPTIONS
-    : [1, 9, 24, 50, 100];
+  // =========================
+  // State
+  // =========================
 
-  const CHARACTER_TREE = EMO_DATA.CHARACTER_TREE || {};
-  const DETAIL_LABELS = EMO_DATA.DETAIL_LABELS || {};
-  const EMOTION_SETS_INFO = EMO_DATA.EMOTION_SETS_INFO || {};
-  const THEMES_INFO = EMO_DATA.THEMES_INFO || {};
-  const OUTFIT_INFO = EMO_DATA.OUTFIT_INFO || {};
-  const COLOR_INFO = EMO_DATA.COLOR_INFO || {};
-
-  // ─────────────────────────────────────────────
-  // 1. 컨셉 스타일 & 소품 정의
-  // ─────────────────────────────────────────────
-  const CONCEPT_STYLES = {
-    auto: { id: "auto", labels: { ko: "선택 안 함 (기본 컨셉)", en: "No override (default concept)" } },
-    words_emotion: { id: "words_emotion", labels: { ko: "손글씨 단어 이모티콘", en: "Handwritten words & doodles" } },
-    bear_love: { id: "bear_love", labels: { ko: "하트 곰돌이 응원 스타일", en: "Heart bear cheering style" } },
-    hamster_reaction: { id: "hamster_reaction", labels: { ko: "리액션 햄스터 스타일", en: "Reaction hamster style" } },
-    blob_soft: { id: "blob_soft", labels: { ko: "말랑 몽글이 정중 스타일", en: "Soft blob polite style" } }
-  };
-
-  const PROP_ITEMS = {
-    auto: { id: "auto", labels: { ko: "소품 없음 (기본 연출)", en: "No props (default)" } },
-    heart_balloon: { id: "heart_balloon", labels: { ko: "하트 풍선 / 하트 뭉치", en: "Heart balloons" } },
-    bouquet: { id: "bouquet", labels: { ko: "꽃다발", en: "Flower bouquet" } },
-    coffee: { id: "coffee", labels: { ko: "커피 / 음료 컵", en: "Coffee cup" } },
-    gift_box: { id: "gift_box", labels: { ko: "선물 상자", en: "Gift box" } },
-    cake: { id: "cake", labels: { ko: "케이크 / 축하 케이크", en: "Celebration cake" } },
-    cheer_board: { id: "cheer_board", labels: { ko: "응원 피켓 / 메시지 보드", en: "Cheering sign board" } },
-    blanket: { id: "blanket", labels: { ko: "담요 / 이불", en: "Blanket" } },
-    medicine: { id: "medicine", labels: { ko: "약 / 구급 상자", en: "Medicine / first-aid kit" } },
-    money_envelope: { id: "money_envelope", labels: { ko: "돈 봉투 / 보너스 봉투", en: "Money envelope" } }
-  };
-
-  // ─────────────────────────────────────────────
-  // 2. 세분화 캐릭터 라벨
-  // ─────────────────────────────────────────────
-  function detailLabel(id, lang) {
-    const info = DETAIL_LABELS[id];
-    if (!info) return id;
-    return info[lang] || info.ko || Object.values(info)[0] || id;
-  }
-
-  // ─────────────────────────────────────────────
-  // 3. state + DOM
-  // ─────────────────────────────────────────────
   const state = {
     lang: "ko",
-    selectedCategoryId: null,
-    selectedSubCategoryId: null,
-    selectedDetailId: null,
-    selectedEmotionSetId: "daily",
+
+    selectedCategoryId: "",
+    selectedSubCategoryId: "",
+    selectedDetailId: "",
+
+    selectedEmotionSetId: "",
+    selectedCount: 24,
+
     selectedThemeId: "white",
-    selectedCount: COUNT_OPTIONS.includes(24) ? 24 : (COUNT_OPTIONS[0] ?? 24),
     selectedOutfitId: "auto",
     selectedColorId: "auto",
-    selectedConceptStyleId: "auto",
-    selectedPropItemId: "auto"
+
+    selectedConceptStyleId: "",
+    selectedPropItemId: "none"
   };
 
-  const $ = (id) => document.getElementById(id);
+  // =========================
+  // Data
+  // =========================
 
-  const categorySelect = $("categorySelect");
-  const subCategorySelect = $("subCategorySelect");
-  const detailSelect = $("detailSelect");
-  const emotionSelect = $("emotionSelect");
-  const countSelect = $("countSelect");
-  const themeSelect = $("themeSelect");
-  const outfitSelect = $("outfitSelect");
-  const colorSelect = $("colorSelect");
-  const conceptStyleSelect = $("conceptStyleSelect");
-  const propSelect = $("propSelect");
-  const generateBtn = $("generateBtn");
-  const copyAllBtn = $("copyAllBtn");
-  const resultsContainer = $("resultsContainer");
-
-  if (
-    !categorySelect || !subCategorySelect || !detailSelect ||
-    !emotionSelect || !countSelect || !themeSelect ||
-    !generateBtn || !copyAllBtn || !resultsContainer
-  ) {
-    console.error("[EmotiMint] 필수 DOM 요소를 찾지 못했습니다. index.html의 id들을 확인하세요.");
+  const DATA = window.EMOTIMINT_DATA;
+  if (!DATA) {
+    console.error("EMOTIMINT_DATA not found. Make sure data.js is loaded before main.js");
     return;
   }
 
-  // ─────────────────────────────────────────────
-  // 4. i18n
-  // ─────────────────────────────────────────────
-  function getI18nValue(key) {
-    const pack = I18N[state.lang] || I18N.ko || {};
-    if (Object.prototype.hasOwnProperty.call(pack, key)) return pack[key];
-    if (I18N.ko && Object.prototype.hasOwnProperty.call(I18N.ko, key)) return I18N.ko[key];
-    return null;
-  }
+  const I18N = DATA.I18N || {};
+  const CHARACTER_TREE = DATA.CHARACTER_TREE || {};
+  const DETAIL_LABELS = DATA.DETAIL_LABELS || {};
+  const EMOTION_SETS_INFO = DATA.EMOTION_SETS_INFO || {};
+  const THEMES_INFO = DATA.THEMES_INFO || {};
+  const OUTFIT_INFO = DATA.OUTFIT_INFO || {};
+  const COLOR_INFO = DATA.COLOR_INFO || {};
+  const CONCEPT_STYLES = DATA.CONCEPT_STYLES || [];
+  const PROP_ITEMS = DATA.PROP_ITEMS || [];
+  const COUNT_OPTIONS = DATA.COUNT_OPTIONS || [1, 9, 24, 50, 100];
+
+  // =========================
+  // 감성 50개 (추가)
+  // - data.js에 EMOTION_TEXTS가 없으면 여기 값을 사용
+  // =========================
+  const FALLBACK_EMOTION_50 = [
+    "오늘은 조용히 있고 싶어요",
+    "괜찮은 척 했는데 사실 좀 힘들었어요",
+    "그냥… 잠깐 숨 고르는 중",
+    "말은 못 했지만 고마웠어요",
+    "나도 나를 좀 아껴볼게요",
+    "괜히 눈물이 나요",
+    "마음이 몽글몽글해요",
+    "조용히 당신 편이에요",
+    "오늘도 버텼다, 나",
+    "마음이 조금 무거워요",
+    "그래도 괜찮아질 거예요",
+    "지금은 천천히 가도 돼요",
+    "괜히 보고 싶네요",
+    "응원 받고 싶은 날",
+    "내일의 나에게 부탁할게요",
+    "잠깐만, 멍 때리는 중",
+    "오늘은 나에게 친절하기",
+    "감정이 뒤죽박죽이에요",
+    "괜찮아, 잘하고 있어",
+    "그냥 따뜻한 말이 필요해요",
+    "갑자기 마음이 찡해요",
+    "아무것도 안 하고 싶어요",
+    "나도 모르게 미소가 나요",
+    "괜히 서운했어요",
+    "조금만 더 쉬었다 갈래요",
+    "오늘은 예민한 날",
+    "눈치 보지 말자, 나",
+    "그냥 안아주고 싶어요",
+    "마음이 파도처럼 오네요",
+    "괜찮다고 말해줘요",
+    "기분이 살짝 좋아졌어요",
+    "갑자기 외로워요",
+    "나를 믿어볼게요",
+    "오늘은 조용한 위로가 좋아요",
+    "말 없이 곁에 있어줘요",
+    "내 마음도 쉬는 중",
+    "괜히 울컥했어요",
+    "오늘은 비 오는 감정",
+    "마음이 따뜻해졌어요",
+    "스스로를 다독이는 중",
+    "보고 싶단 말, 참 어렵네요",
+    "잠깐, 마음 정리 중",
+    "오늘은 좀 지쳤어요",
+    "괜찮아질 때까지 천천히",
+    "내 편이 되어줄게요",
+    "기대하지 않으려 했는데",
+    "조용히 안심이 돼요",
+    "마음이 살짝 풀렸어요",
+    "오늘은 그냥, 나답게"
+  ];
+
+  // =========================
+  // i18n
+  // =========================
 
   function t(key) {
-    const v = getI18nValue(key);
-    return v != null ? v : key;
+    const pack = I18N[state.lang] || I18N.ko || {};
+    return pack[key] || (I18N.ko ? I18N.ko[key] : key) || key;
   }
 
-  function applyStaticI18n() {
-    document.querySelectorAll("[data-i18n]").forEach((el) => {
-      const key = el.getAttribute("data-i18n");
-      const value = getI18nValue(key);
-      if (value == null) return;
-      el.textContent = value;
+  function applyI18nStatic() {
+    const elTitle = qs('[data-i18n="app.title"]');
+    const elSub = qs('[data-i18n="app.subtitle"]');
+    const elBeta = qs('[data-i18n="badge.beta"]');
+    const elGlobal = qs('[data-i18n="badge.global"]');
+
+    if (elTitle) elTitle.textContent = t("app.title");
+    if (elSub) elSub.textContent = t("app.subtitle");
+    if (elBeta) elBeta.textContent = t("badge.beta");
+    if (elGlobal) elGlobal.textContent = t("badge.global");
+
+    qsa("[data-i18n]").forEach((node) => {
+      const key = node.getAttribute("data-i18n");
+      if (!key) return;
+      if (key.startsWith("app.") || key.startsWith("badge.")) return;
+      node.textContent = t(key);
     });
   }
 
-  function labelFrom(obj) {
-    if (!obj || !obj.labels) return "";
-    return obj.labels[state.lang] || obj.labels.ko || "";
+  // =========================
+  // DOM
+  // =========================
+
+  const dom = {
+    langSelect: qs("#langSelect"),
+
+    categorySelect: qs("#categorySelect"),
+    subCategorySelect: qs("#subCategorySelect"),
+    detailSelect: qs("#detailSelect"),
+
+    emotionSetSelect: qs("#emotionSetSelect"),
+    countSelect: qs("#countSelect"),
+
+    themeSelect: qs("#themeSelect"),
+    outfitSelect: qs("#outfitSelect"),
+    colorSelect: qs("#colorSelect"),
+
+    conceptStyleSelect: qs("#conceptStyleSelect"),
+    propItemSelect: qs("#propItemSelect"),
+
+    btnGenerate: qs("#btnGenerate"),
+    btnCopyAll: qs("#btnCopyAll"),
+
+    resultsWrap: qs("#resultsWrap"),
+    resultsList: qs("#resultsList"),
+
+    toast: qs("#toast")
+  };
+
+  function toast(msg) {
+    if (!dom.toast) return;
+    dom.toast.textContent = msg;
+    dom.toast.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => dom.toast.classList.remove("show"), 1100);
   }
 
-  // ─────────────────────────────────────────────
-  // 5. 트리 접근 (id/key 혼용 안전)
-  // ─────────────────────────────────────────────
-  function getCategoryById(id) {
-    if (!id) return null;
-    if (CHARACTER_TREE[id]) return CHARACTER_TREE[id];
-    return Object.values(CHARACTER_TREE).find((c) => c?.id === id) || null;
+  // =========================
+  // Populate Selects
+  // =========================
+
+  function option(label, value) {
+    const o = document.createElement("option");
+    o.value = value;
+    o.textContent = label;
+    return o;
   }
 
-  function getSubById(cat, subId) {
-    if (!cat || !subId) return null;
-    if (cat.subCategories?.[subId]) return cat.subCategories[subId];
-    return Object.values(cat.subCategories || {}).find((s) => s?.id === subId) || null;
+  function getLabel(obj, lang) {
+    return (obj && obj.labels && (obj.labels[lang] || obj.labels.ko)) || "";
   }
 
-  // ─────────────────────────────────────────────
-  // 6. Select 렌더 + 자동 기본값 세팅
-  // ─────────────────────────────────────────────
-  function renderCategoryOptions() {
-    categorySelect.innerHTML = "";
+  function getDetailLabel(detailId) {
+    const item = DETAIL_LABELS[detailId];
+    if (!item) return detailId;
+    return item[state.lang] || item.ko || detailId;
+  }
 
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "—";
-    categorySelect.appendChild(placeholder);
+  function populateCategories() {
+    if (!dom.categorySelect) return;
+    dom.categorySelect.innerHTML = "";
+    dom.categorySelect.appendChild(option(t("labels.category"), ""));
 
-    const cats = Object.values(CHARACTER_TREE);
-    cats.forEach((cat) => {
-      const opt = document.createElement("option");
-      opt.value = cat.id;
-      opt.textContent = labelFrom(cat);
-      categorySelect.appendChild(opt);
+    Object.keys(CHARACTER_TREE).forEach((k) => {
+      const cat = CHARACTER_TREE[k];
+      dom.categorySelect.appendChild(option(getLabel(cat, state.lang), cat.id));
     });
-
-    // ✅ 기본값 자동 세팅 (비어있으면 첫 카테고리)
-    if (!state.selectedCategoryId && cats.length) {
-      state.selectedCategoryId = cats[0].id;
-    }
-    categorySelect.value = state.selectedCategoryId || "";
   }
 
-  function renderSubCategoryOptions() {
-    subCategorySelect.innerHTML = "";
-    detailSelect.innerHTML = "";
+  function populateSubCategories() {
+    if (!dom.subCategorySelect) return;
+    dom.subCategorySelect.innerHTML = "";
+    dom.subCategorySelect.appendChild(option(t("labels.subCategory"), ""));
 
-    const cat = getCategoryById(state.selectedCategoryId);
+    const cat = Object.values(CHARACTER_TREE).find((c) => c.id === state.selectedCategoryId);
     if (!cat) return;
 
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "—";
-    subCategorySelect.appendChild(placeholder);
-
-    const subs = Object.values(cat.subCategories || {});
-    subs.forEach((sub) => {
-      const opt = document.createElement("option");
-      opt.value = sub.id;
-      opt.textContent = labelFrom(sub);
-      subCategorySelect.appendChild(opt);
+    const subs = cat.subCategories || {};
+    Object.keys(subs).forEach((k) => {
+      const sub = subs[k];
+      dom.subCategorySelect.appendChild(option(getLabel(sub, state.lang), sub.id));
     });
-
-    // ✅ 기본값 자동 세팅 (비어있으면 첫 소분류)
-    if (!state.selectedSubCategoryId && subs.length) {
-      state.selectedSubCategoryId = subs[0].id;
-    }
-    subCategorySelect.value = state.selectedSubCategoryId || "";
   }
 
-  function renderDetailOptions() {
-    detailSelect.innerHTML = "";
+  function populateDetails() {
+    if (!dom.detailSelect) return;
+    dom.detailSelect.innerHTML = "";
+    dom.detailSelect.appendChild(option(t("labels.detail"), ""));
 
-    const cat = getCategoryById(state.selectedCategoryId);
-    const sub = getSubById(cat, state.selectedSubCategoryId);
+    const cat = Object.values(CHARACTER_TREE).find((c) => c.id === state.selectedCategoryId);
+    if (!cat) return;
+
+    const sub = Object.values(cat.subCategories || {}).find((s) => s.id === state.selectedSubCategoryId);
     if (!sub) return;
 
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "—";
-    detailSelect.appendChild(placeholder);
+    (sub.details || []).forEach((detailId) => {
+      dom.detailSelect.appendChild(option(getDetailLabel(detailId), detailId));
+    });
+  }
 
-    const details = Array.isArray(sub.details) ? sub.details : [];
-    details.forEach((detailId) => {
-      const opt = document.createElement("option");
-      opt.value = detailId;
-      opt.textContent = detailLabel(detailId, state.lang);
-      detailSelect.appendChild(opt);
+  function populateEmotionSets() {
+    if (!dom.emotionSetSelect) return;
+    dom.emotionSetSelect.innerHTML = "";
+    dom.emotionSetSelect.appendChild(option(t("labels.emotionSet"), ""));
+
+    Object.keys(EMOTION_SETS_INFO).forEach((k) => {
+      const s = EMOTION_SETS_INFO[k];
+      dom.emotionSetSelect.appendChild(option(getLabel(s, state.lang), s.id));
+    });
+  }
+
+  function populateCountsForSet() {
+    if (!dom.countSelect) return;
+    dom.countSelect.innerHTML = "";
+
+    const set = Object.values(EMOTION_SETS_INFO).find((s) => s.id === state.selectedEmotionSetId);
+    const allowed = (set && set.allowedCounts) ? set.allowedCounts : COUNT_OPTIONS;
+
+    allowed.forEach((n) => {
+      dom.countSelect.appendChild(option(String(n), String(n)));
     });
 
-    // ✅ 기본값 자동 세팅 (비어있으면 첫 세분화)
-    if (!state.selectedDetailId && details.length) {
-      state.selectedDetailId = details[0];
+    // default count 유지
+    const defaultCount =
+      (set && set.defaultCount) ? set.defaultCount : (allowed.includes(24) ? 24 : allowed[allowed.length - 1]);
+
+    if (!allowed.includes(state.selectedCount)) {
+      state.selectedCount = defaultCount;
     }
-    detailSelect.value = state.selectedDetailId || "";
+    dom.countSelect.value = String(state.selectedCount);
   }
 
-  function renderEmotionOptions() {
-    emotionSelect.innerHTML = "";
-    const sets = Object.values(EMOTION_SETS_INFO);
-
-    sets.forEach((set) => {
-      const opt = document.createElement("option");
-      opt.value = set.id;
-      opt.textContent = labelFrom(set);
-      emotionSelect.appendChild(opt);
+  function populateThemes() {
+    if (!dom.themeSelect) return;
+    dom.themeSelect.innerHTML = "";
+    Object.keys(THEMES_INFO).forEach((k) => {
+      const th = THEMES_INFO[k];
+      dom.themeSelect.appendChild(option(getLabel(th, state.lang), th.id));
     });
-
-    if (!state.selectedEmotionSetId && sets.length) state.selectedEmotionSetId = sets[0].id;
-    emotionSelect.value = state.selectedEmotionSetId || "";
+    dom.themeSelect.value = state.selectedThemeId;
   }
 
-  function renderCountOptions() {
-    countSelect.innerHTML = "";
-    COUNT_OPTIONS.forEach((num) => {
-      const opt = document.createElement("option");
-      opt.value = String(num);
-      opt.textContent = String(num);
-      countSelect.appendChild(opt);
+  function populateOutfits() {
+    if (!dom.outfitSelect) return;
+    dom.outfitSelect.innerHTML = "";
+    Object.keys(OUTFIT_INFO).forEach((k) => {
+      const o = OUTFIT_INFO[k];
+      dom.outfitSelect.appendChild(option(getLabel(o, state.lang), o.id));
     });
+    dom.outfitSelect.value = state.selectedOutfitId;
+  }
 
-    if (!COUNT_OPTIONS.includes(state.selectedCount)) {
-      state.selectedCount = COUNT_OPTIONS[0] ?? 24;
+  function populateColors() {
+    if (!dom.colorSelect) return;
+    dom.colorSelect.innerHTML = "";
+    Object.keys(COLOR_INFO).forEach((k) => {
+      const c = COLOR_INFO[k];
+      dom.colorSelect.appendChild(option(getLabel(c, state.lang), c.id));
+    });
+    dom.colorSelect.value = state.selectedColorId;
+  }
+
+  function populateConceptStyles() {
+    if (!dom.conceptStyleSelect) return;
+    dom.conceptStyleSelect.innerHTML = "";
+    dom.conceptStyleSelect.appendChild(option(t("labels.conceptStyle"), ""));
+
+    CONCEPT_STYLES.forEach((cs) => {
+      dom.conceptStyleSelect.appendChild(option(getLabel(cs, state.lang), cs.id));
+    });
+    dom.conceptStyleSelect.value = state.selectedConceptStyleId;
+  }
+
+  function populateProps() {
+    if (!dom.propItemSelect) return;
+    dom.propItemSelect.innerHTML = "";
+    PROP_ITEMS.forEach((p) => {
+      dom.propItemSelect.appendChild(option(getLabel(p, state.lang), p.id));
+    });
+    dom.propItemSelect.value = state.selectedPropItemId;
+  }
+
+  // =========================
+  // Emotion / Prompt building
+  // =========================
+
+  // ✅ 감성 텍스트 소스: data.js의 EMOTION_TEXTS 있으면 우선 사용, 없으면 FALLBACK_EMOTION_50 사용
+  function getEmotionTexts(setId) {
+    const fromData = window.EMOTIMINT_DATA?.EMOTION_TEXTS?.[setId] || window.EMOTIMINT_DATA?.EMOTION_TEXTS?.emotional;
+    if (Array.isArray(fromData) && fromData.length) return fromData;
+    return FALLBACK_EMOTION_50;
+  }
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
     }
-    countSelect.value = String(state.selectedCount);
+    return a;
   }
 
-  function renderThemeOptions() {
-    themeSelect.innerHTML = "";
-    const themes = Object.values(THEMES_INFO);
-
-    themes.forEach((theme) => {
-      const opt = document.createElement("option");
-      opt.value = theme.id;
-      opt.textContent = labelFrom(theme);
-      themeSelect.appendChild(opt);
-    });
-
-    if (!state.selectedThemeId && themes.length) state.selectedThemeId = themes[0].id;
-    themeSelect.value = state.selectedThemeId || "";
+  // 기존 코드에서 emotionItems를 쓰는 구조가 있으면 유지하되,
+  // 없을 때(=감정1/2 fallback)만 "감성 50"을 사용하도록 처리
+  function getEmotionItems(setId) {
+    // 🔸 기존 프로젝트에 이미 emotion DB가 있다면 여기에 연결되어 있을 수 있음
+    // 현재는 data.js에서 EMOTION_TEXTS만 쓰는 구조를 지원
+    // 반환 포맷: [{ ko: "문구" }, ...]
+    const list = getEmotionTexts(setId);
+    return list.map((x) => ({ ko: x }));
   }
 
-  function renderOutfitOptions() {
-    if (!outfitSelect) return;
-    outfitSelect.innerHTML = "";
-    Object.values(OUTFIT_INFO).forEach((o) => {
-      const opt = document.createElement("option");
-      opt.value = o.id;
-      opt.textContent = labelFrom(o);
-      outfitSelect.appendChild(opt);
-    });
-    outfitSelect.value = state.selectedOutfitId || "auto";
-  }
-
-  function renderColorOptions() {
-    if (!colorSelect) return;
-    colorSelect.innerHTML = "";
-    Object.values(COLOR_INFO).forEach((c) => {
-      const opt = document.createElement("option");
-      opt.value = c.id;
-      opt.textContent = labelFrom(c);
-      colorSelect.appendChild(opt);
-    });
-    colorSelect.value = state.selectedColorId || "auto";
-  }
-
-  function renderConceptStyleOptions() {
-    if (!conceptStyleSelect) return;
-    conceptStyleSelect.innerHTML = "";
-    Object.values(CONCEPT_STYLES).forEach((cs) => {
-      const opt = document.createElement("option");
-      opt.value = cs.id;
-      opt.textContent = labelFrom(cs);
-      conceptStyleSelect.appendChild(opt);
-    });
-    conceptStyleSelect.value = state.selectedConceptStyleId || "auto";
-  }
-
-  function renderPropOptions() {
-    if (!propSelect) return;
-    propSelect.innerHTML = "";
-    Object.values(PROP_ITEMS).forEach((p) => {
-      const opt = document.createElement("option");
-      opt.value = p.id;
-      opt.textContent = labelFrom(p);
-      propSelect.appendChild(opt);
-    });
-    propSelect.value = state.selectedPropItemId || "auto";
-  }
-
-  function renderAllSelects() {
-    renderCategoryOptions();
-    renderSubCategoryOptions();
-    renderDetailOptions();
-    renderEmotionOptions();
-    renderCountOptions();
-    renderThemeOptions();
-    renderOutfitOptions();
-    renderColorOptions();
-    renderConceptStyleOptions();
-    renderPropOptions();
-  }
-
-  // ─────────────────────────────────────────────
-  // 7. 이벤트 바인딩
-  // ─────────────────────────────────────────────
-  categorySelect.addEventListener("change", () => {
-    state.selectedCategoryId = categorySelect.value || null;
-    state.selectedSubCategoryId = null;
-    state.selectedDetailId = null;
-    renderSubCategoryOptions();
-    renderDetailOptions();
-  });
-
-  subCategorySelect.addEventListener("change", () => {
-    state.selectedSubCategoryId = subCategorySelect.value || null;
-    state.selectedDetailId = null;
-    renderDetailOptions();
-  });
-
-  detailSelect.addEventListener("change", () => {
-    state.selectedDetailId = detailSelect.value || null;
-  });
-
-  emotionSelect.addEventListener("change", () => {
-    state.selectedEmotionSetId = emotionSelect.value;
-  });
-
-  countSelect.addEventListener("change", () => {
-    state.selectedCount = Number(countSelect.value) || 1;
-  });
-
-  themeSelect.addEventListener("change", () => {
-    state.selectedThemeId = themeSelect.value;
-  });
-
-  if (outfitSelect) outfitSelect.addEventListener("change", () => (state.selectedOutfitId = outfitSelect.value || "auto"));
-  if (colorSelect) colorSelect.addEventListener("change", () => (state.selectedColorId = colorSelect.value || "auto"));
-  if (conceptStyleSelect) conceptStyleSelect.addEventListener("change", () => (state.selectedConceptStyleId = conceptStyleSelect.value || "auto"));
-  if (propSelect) propSelect.addEventListener("change", () => (state.selectedPropItemId = propSelect.value || "auto"));
-
-  document.querySelectorAll(".lang-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      state.lang = btn.getAttribute("data-lang") || "ko";
-      document.querySelectorAll(".lang-btn").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      applyStaticI18n();
-      renderAllSelects();
-    });
-  });
-
-  // ─────────────────────────────────────────────
-  // 8. 결과 렌더링
-  // ─────────────────────────────────────────────
-  function renderPromptList(prompts) {
-    resultsContainer.innerHTML = "";
-    if (!Array.isArray(prompts) || !prompts.length) return;
-
-    prompts.forEach((p, idx) => {
-      const item = document.createElement("div");
-      item.className = "result-item";
-
-      const left = document.createElement("div");
-      left.className = "result-left";
-
-      const indexEl = document.createElement("div");
-      indexEl.className = "result-index";
-
-      const koLabel = p?.koLabel ? ` (${p.koLabel})` : "";
-      indexEl.textContent = `#${idx + 1}${koLabel}`;
-
-      const textarea = document.createElement("textarea");
-      textarea.className = "result-text";
-      textarea.readOnly = true;
-      textarea.value = p?.text || "";
-
-      left.appendChild(indexEl);
-      left.appendChild(textarea);
-
-      const btn = document.createElement("button");
-      btn.className = "btn btn-copy result-copy-btn";
-      btn.textContent = t("buttons.copy");
-      btn.addEventListener("click", () => {
-        const toCopy = p?.text || "";
-        if (!toCopy) return;
-        navigator.clipboard.writeText(toCopy);
-        btn.classList.remove("btn-copy");
-        btn.classList.add("btn-success");
-        btn.textContent = t("buttons.copied");
-        setTimeout(() => {
-          btn.classList.remove("btn-success");
-          btn.classList.add("btn-copy");
-          btn.textContent = t("buttons.copy");
-        }, 1200);
-      });
-
-      item.appendChild(left);
-      item.appendChild(btn);
-      resultsContainer.appendChild(item);
-    });
-  }
-
-  copyAllBtn.addEventListener("click", () => {
-    const texts = Array.from(resultsContainer.querySelectorAll(".result-text"))
-      .map((ta) => ta.value.trim())
-      .filter((v) => v.length > 0);
-
-    if (!texts.length) return;
-
-    navigator.clipboard.writeText(texts.join("\n\n"));
-    copyAllBtn.classList.add("btn-success");
-    copyAllBtn.textContent = t("buttons.copied");
-    setTimeout(() => {
-      copyAllBtn.classList.remove("btn-success");
-      copyAllBtn.textContent = t("buttons.copyAll");
-    }, 1200);
-  });
-
-  // ─────────────────────────────────────────────
-  // 9. 로컬 생성 (GitHub Pages용)
-  // ─────────────────────────────────────────────
   function getSelectedMeta() {
-    const cat = getCategoryById(state.selectedCategoryId);
-    const sub = getSubById(cat, state.selectedSubCategoryId);
-    const detailName = state.selectedDetailId ? detailLabel(state.selectedDetailId, state.lang) : "";
-
-    const theme = THEMES_INFO[state.selectedThemeId] || Object.values(THEMES_INFO)[0];
-
-    const outfit = OUTFIT_INFO[state.selectedOutfitId] || OUTFIT_INFO.auto || { id: "auto", labels: { ko: "자동", en: "auto" } };
-    const color = COLOR_INFO[state.selectedColorId] || COLOR_INFO.auto || { id: "auto", labels: { ko: "자동", en: "auto" } };
-
-    const concept = CONCEPT_STYLES[state.selectedConceptStyleId] || CONCEPT_STYLES.auto;
-    const prop = PROP_ITEMS[state.selectedPropItemId] || PROP_ITEMS.auto;
-
     return {
-      categoryName: cat ? labelFrom(cat) : "",
-      subName: sub ? labelFrom(sub) : "",
-      detailName,
-      theme,
-      outfit,
-      color,
-      concept,
-      prop
+      lang: state.lang,
+      categoryId: state.selectedCategoryId,
+      subCategoryId: state.selectedSubCategoryId,
+      detailId: state.selectedDetailId,
+      emotionSetId: state.selectedEmotionSetId,
+      themeId: state.selectedThemeId,
+      outfitId: state.selectedOutfitId,
+      colorId: state.selectedColorId,
+      conceptStyleId: state.selectedConceptStyleId,
+      propItemId: state.selectedPropItemId
     };
   }
 
-  function getEmotionItems(setId) {
-    const set = EMOTION_SETS_INFO[setId] || Object.values(EMOTION_SETS_INFO).find((s) => s?.id === setId);
-    const items = set?.items || set?.emotions || set?.list || [];
-    return Array.isArray(items) ? items : [];
-  }
+  function buildOnePrompt(meta, emotionObj) {
+    const detailLabel = getDetailLabel(meta.detailId);
 
-  function buildOnePrompt(meta, emotionItem, idx) {
-    const koLabel = emotionItem?.ko || emotionItem?.labelKo || emotionItem?.nameKo || emotionItem?.label || `감정 ${idx + 1}`;
-    const enLabel = emotionItem?.en || emotionItem?.labelEn || emotionItem?.nameEn || "";
+    const themeLabel = getLabel(THEMES_INFO[meta.themeId] || {}, meta.lang) || "white background";
+    const outfitLabel = getLabel(OUTFIT_INFO[meta.outfitId] || {}, meta.lang);
+    const colorLabel = getLabel(COLOR_INFO[meta.colorId] || {}, meta.lang);
 
-    const outfitText = meta.outfit?.id !== "auto" ? labelFrom(meta.outfit) : "";
-    const colorText = meta.color?.id !== "auto" ? labelFrom(meta.color) : "";
-    const conceptText = meta.concept?.id !== "auto" ? labelFrom(meta.concept) : "";
-    const propText = meta.prop?.id !== "auto" ? labelFrom(meta.prop) : "";
+    const concept = CONCEPT_STYLES.find((x) => x.id === meta.conceptStyleId);
+    const conceptDesc = concept ? (concept.descriptions?.[meta.lang] || concept.descriptions?.ko || "") : "";
 
-    const themeText = meta.theme ? labelFrom(meta.theme) : "";
-    const characterLine = meta.detailName || meta.subName || meta.categoryName || "Character";
-    const emotionLine = state.lang === "ko" ? koLabel : (enLabel || koLabel);
+    const prop = PROP_ITEMS.find((x) => x.id === meta.propItemId);
+    const propPrompt = prop ? (prop.prompts?.[meta.lang] || prop.prompts?.ko || "") : "";
 
-    const lines = [
-      `Character: ${characterLine}`,
-      `Emotion: ${emotionLine}`,
-      themeText ? `Background: ${themeText}` : "",
-      outfitText ? `Outfit: ${outfitText}` : "",
-      colorText ? `Color: ${colorText}` : "",
-      conceptText ? `Concept style: ${conceptText}` : "",
-      propText ? `Prop: ${propText}` : "",
-      "",
-      `Style: kakao emoji style, clean thick lineart, consistent line thickness, centered composition, white/clean background, no text, no logo, no watermark`
+    // ✅ “감정1/감정2” 대신, emotionObj.ko가 항상 감성 문구가 됨
+    const emotionText = (emotionObj && emotionObj.ko) ? emotionObj.ko : "오늘은 조용히 있고 싶어요";
+
+    // 결과 프롬프트(현우님 프로젝트 톤 유지: 카카오 이모티콘 / 리크레프트용으로 무난한 형태)
+    const parts = [
+      `cute original chibi character`,
+      `kakao emoji style`,
+      `clean thick lineart, consistent line thickness`,
+      `soft pastel color palette, warm gentle atmosphere`,
+      `character: ${detailLabel}`,
+      `emotion/phrase: ${emotionText}`,
+      propPrompt ? `prop: ${propPrompt}` : "",
+      meta.outfitId && meta.outfitId !== "auto" ? `outfit: ${outfitLabel}` : "",
+      meta.colorId && meta.colorId !== "auto" ? `color theme: ${colorLabel}` : "",
+      meta.themeId ? `background: ${themeLabel}` : `background: white`,
+      `centered composition, no logo, no watermark, no text except the phrase`
     ].filter(Boolean);
 
-    return {
-      koLabel: emotionLine,
-      text: lines.join("\n")
-    };
+    return parts.join(", ");
   }
 
   function generatePromptsLocal() {
     const meta = getSelectedMeta();
-    const emotionItems = getEmotionItems(state.selectedEmotionSetId);
 
-    const baseList = emotionItems.length
-      ? emotionItems
-      : Array.from({ length: state.selectedCount }, (_, i) => ({ ko: `감정 ${i + 1}` }));
+    if (!meta.detailId) {
+      toast(t("messages.noCharacter"));
+      return [];
+    }
+    if (!meta.emotionSetId) {
+      toast(t("messages.noEmotion"));
+      return [];
+    }
 
+    const emotionItems = getEmotionItems(meta.emotionSetId);
+
+    const shuffled = shuffle(emotionItems);
     const prompts = [];
     for (let i = 0; i < state.selectedCount; i++) {
-      prompts.push(buildOnePrompt(meta, baseList[i % baseList.length], i));
+      prompts.push(buildOnePrompt(meta, shuffled[i % shuffled.length]));
     }
     return prompts;
   }
 
-  // ─────────────────────────────────────────────
-  // 10. API 호출 + 실패 시 로컬 fallback
-  // ─────────────────────────────────────────────
-  function isGitHubPages() {
-    return /github\.io$/i.test(location.hostname);
-  }
+  // =========================
+  // Render Results
+  // =========================
 
-  async function generatePrompts() {
-    if (!state.selectedDetailId) {
-      alert(t("messages.noCharacter"));
-      return;
-    }
-    if (!state.selectedEmotionSetId) {
-      alert(t("messages.noEmotion"));
-      return;
-    }
+  function renderResults(prompts) {
+    if (!dom.resultsList) return;
+    dom.resultsList.innerHTML = "";
 
-    // ✅ GitHub Pages면 API 시도 자체를 건너뜀
-    if (isGitHubPages() || !API_BASE) {
-      renderPromptList(generatePromptsLocal());
-      return;
-    }
+    prompts.forEach((p, idx) => {
+      const li = document.createElement("li");
+      li.className = "result-item";
 
-    const payload = {
-      detailId: state.selectedDetailId,
-      emotionSetId: state.selectedEmotionSetId,
-      themeId: state.selectedThemeId,
-      count: state.selectedCount,
-      outfitId: state.selectedOutfitId || "auto",
-      colorId: state.selectedColorId || "auto",
-      conceptStyleId: state.selectedConceptStyleId || "auto",
-      propItemId: state.selectedPropItemId || "auto"
-    };
+      const pre = document.createElement("pre");
+      pre.className = "result-text";
+      pre.textContent = p;
 
-    try {
-      const res = await fetch(`${API_BASE}/api/generate-prompts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+      const btn = document.createElement("button");
+      btn.className = "btn-copy";
+      btn.type = "button";
+      btn.textContent = t("buttons.copy");
+      btn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(p);
+          btn.textContent = t("buttons.copied");
+          btn.classList.add("copied");
+          setTimeout(() => {
+            btn.textContent = t("buttons.copy");
+            btn.classList.remove("copied");
+          }, 900);
+        } catch (e) {
+          console.error(e);
+          toast("Copy failed");
+        }
       });
 
-      if (!res.ok) {
-        console.warn("[EmotiMint] API 호출 실패 → 로컬 생성으로 전환", res.status);
-        renderPromptList(generatePromptsLocal());
-        return;
-      }
+      const num = document.createElement("div");
+      num.className = "result-num";
+      num.textContent = String(idx + 1);
 
-      const data = await res.json();
-      if (data?.ok && Array.isArray(data.prompts)) {
-        renderPromptList(data.prompts);
-      } else {
-        console.warn("[EmotiMint] API 응답 형식 불일치 → 로컬 생성으로 전환");
-        renderPromptList(generatePromptsLocal());
-      }
-    } catch (err) {
-      console.warn("[EmotiMint] API 에러 → 로컬 생성으로 전환", err);
-      renderPromptList(generatePromptsLocal());
+      li.appendChild(num);
+      li.appendChild(pre);
+      li.appendChild(btn);
+
+      dom.resultsList.appendChild(li);
+    });
+
+    if (dom.resultsWrap) dom.resultsWrap.style.display = prompts.length ? "block" : "none";
+  }
+
+  async function copyAll(prompts) {
+    if (!prompts || !prompts.length) return;
+    const text = prompts.join("\n\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast(t("buttons.copied"));
+    } catch (e) {
+      console.error(e);
+      toast("Copy failed");
     }
   }
 
-  generateBtn.addEventListener("click", generatePrompts);
+  // =========================
+  // Events
+  // =========================
 
-  // ─────────────────────────────────────────────
-  // 11. 초기화
-  // ─────────────────────────────────────────────
-  function init() {
-    applyStaticI18n();
-    renderAllSelects();
+  function bindEvents() {
+    if (dom.langSelect) {
+      dom.langSelect.addEventListener("change", () => {
+        state.lang = dom.langSelect.value || "ko";
+        applyI18nStatic();
+
+        populateCategories();
+        populateSubCategories();
+        populateDetails();
+
+        populateEmotionSets();
+        populateCountsForSet();
+
+        populateThemes();
+        populateOutfits();
+        populateColors();
+        populateConceptStyles();
+        populateProps();
+      });
+    }
+
+    if (dom.categorySelect) {
+      dom.categorySelect.addEventListener("change", () => {
+        state.selectedCategoryId = dom.categorySelect.value || "";
+        state.selectedSubCategoryId = "";
+        state.selectedDetailId = "";
+        populateSubCategories();
+        populateDetails();
+      });
+    }
+
+    if (dom.subCategorySelect) {
+      dom.subCategorySelect.addEventListener("change", () => {
+        state.selectedSubCategoryId = dom.subCategorySelect.value || "";
+        state.selectedDetailId = "";
+        populateDetails();
+      });
+    }
+
+    if (dom.detailSelect) {
+      dom.detailSelect.addEventListener("change", () => {
+        state.selectedDetailId = dom.detailSelect.value || "";
+      });
+    }
+
+    if (dom.emotionSetSelect) {
+      dom.emotionSetSelect.addEventListener("change", () => {
+        state.selectedEmotionSetId = dom.emotionSetSelect.value || "";
+        populateCountsForSet();
+      });
+    }
+
+    if (dom.countSelect) {
+      dom.countSelect.addEventListener("change", () => {
+        state.selectedCount = clampInt(dom.countSelect.value, 1, 100);
+      });
+    }
+
+    if (dom.themeSelect) {
+      dom.themeSelect.addEventListener("change", () => {
+        state.selectedThemeId = dom.themeSelect.value || "white";
+      });
+    }
+
+    if (dom.outfitSelect) {
+      dom.outfitSelect.addEventListener("change", () => {
+        state.selectedOutfitId = dom.outfitSelect.value || "auto";
+      });
+    }
+
+    if (dom.colorSelect) {
+      dom.colorSelect.addEventListener("change", () => {
+        state.selectedColorId = dom.colorSelect.value || "auto";
+      });
+    }
+
+    if (dom.conceptStyleSelect) {
+      dom.conceptStyleSelect.addEventListener("change", () => {
+        state.selectedConceptStyleId = dom.conceptStyleSelect.value || "";
+      });
+    }
+
+    if (dom.propItemSelect) {
+      dom.propItemSelect.addEventListener("change", () => {
+        state.selectedPropItemId = dom.propItemSelect.value || "none";
+      });
+    }
+
+    if (dom.btnGenerate) {
+      dom.btnGenerate.addEventListener("click", () => {
+        const prompts = generatePromptsLocal();
+        renderResults(prompts);
+        // copyAll 버튼에서 사용할 수 있게 저장
+        dom.btnGenerate.__last = prompts;
+      });
+    }
+
+    if (dom.btnCopyAll) {
+      dom.btnCopyAll.addEventListener("click", () => {
+        const prompts = dom.btnGenerate?.__last || [];
+        copyAll(prompts);
+      });
+    }
   }
 
-  init();
+  // =========================
+  // Init
+  // =========================
+
+  function initDefaults() {
+    if (dom.langSelect) {
+      state.lang = dom.langSelect.value || "ko";
+    }
+    if (dom.themeSelect) state.selectedThemeId = dom.themeSelect.value || "white";
+    if (dom.outfitSelect) state.selectedOutfitId = dom.outfitSelect.value || "auto";
+    if (dom.colorSelect) state.selectedColorId = dom.colorSelect.value || "auto";
+    if (dom.propItemSelect) state.selectedPropItemId = dom.propItemSelect.value || "none";
+  }
+
+  function init() {
+    initDefaults();
+    applyI18nStatic();
+
+    populateCategories();
+    populateSubCategories();
+    populateDetails();
+
+    populateEmotionSets();
+    populateCountsForSet();
+
+    populateThemes();
+    populateOutfits();
+    populateColors();
+    populateConceptStyles();
+    populateProps();
+
+    bindEvents();
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
 })();

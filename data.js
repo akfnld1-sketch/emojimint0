@@ -5,8 +5,8 @@
   // =========================
   // ✅ 정책 선택: "A" or "B"
   // =========================
-  // A: 중복 제거 + daily만 50종 + 나머지 24종 유지
-  // B: 모든 세트 50종 (지금 코드처럼)
+  // A: daily만 50종 + 나머지 24종 유지 (+ emotional은 50종 가능)
+  // B: 모든 세트 50종
   const SET_POLICY = "A"; // ← 여기만 "A" 또는 "B"
 
   // 다국어 라벨
@@ -25,7 +25,7 @@
 
       "section.emotion.title": "감정·상황 세트",
       "section.emotion.desc":
-        "일상 / 직장 / 연인 / 크리스마스 / 설날 / 연말 세트 중 하나와 생성 개수, 배경 테마를 선택합니다.",
+        "일상 / 감성 / 직장 / 연인 / 크리스마스 / 설날 / 연말 세트 중 하나와 생성 개수, 배경 테마를 선택합니다.",
 
       "section.advanced.title": "고급 옵션 (옷 / 색상)",
       "section.advanced.desc":
@@ -71,7 +71,7 @@
 
       "section.emotion.title": "Emotion & Situation Sets",
       "section.emotion.desc":
-        "Pick one of Daily / Work / Couple / Christmas / New Year / Year-end sets, count, and background theme.",
+        "Pick one of Daily / Emotional / Work / Couple / Christmas / New Year / Year-end sets, count, and background theme.",
 
       "section.advanced.title": "Advanced Options (Outfit / Color)",
       "section.advanced.desc":
@@ -117,7 +117,7 @@
 
       "section.emotion.title": "感情・シチュエーションセット",
       "section.emotion.desc":
-        "日常 / 仕事 / 恋人 / クリスマス / 正月 / 年末セットの中から選び、生成数と背景テーマを指定します。",
+        "日常 / 感性 / 仕事 / 恋人 / クリスマス / 正月 / 年末セットの中から選び、生成数と背景テーマを指定します。",
 
       "section.advanced.title": "上級オプション（服 / カラー）",
       "section.advanced.desc":
@@ -162,7 +162,7 @@
 
       "section.emotion.title": "情绪·场景套装",
       "section.emotion.desc":
-        "从日常 / 职场 / 恋人 / 圣诞 / 新年 / 年末套装中选择，并设置数量和背景主题。",
+        "从日常 / 感性 / 职场 / 恋人 / 圣诞 / 新年 / 年末套装中选择，并设置数量和背景主题。",
 
       "section.advanced.title": "高级选项（服装 / 颜色）",
       "section.advanced.desc":
@@ -520,11 +520,17 @@
     mini_special_devil: { ko: "악마 미니 캐릭터", en: "Devil mini character", ja: "悪魔ミニキャラ", zh: "恶魔迷你角色" }
   };
 
-  // 감정·상황 세트 (정책 적용)
+  // =========================
+  // ✅ 감정·상황 세트 (감성 50종 추가)
+  // =========================
   const EMOTION_SETS_INFO_BASE = {
     daily: {
       id: "daily",
       labels: { ko: "일상생활 24종", en: "Daily Life 24", ja: "日常生活 24種", zh: "日常生活24套" }
+    },
+    emotional: {
+      id: "emotional",
+      labels: { ko: "감성 50종", en: "Emotional 50", ja: "感性 50種", zh: "感性50套" }
     },
     work: {
       id: "work",
@@ -553,6 +559,7 @@
 
     const allowedA = {
       daily: [1, 9, 24, 50],
+      emotional: [1, 9, 24, 50],
       work: [1, 9, 24],
       couple: [1, 9, 24],
       christmas: [1, 9, 24],
@@ -562,6 +569,7 @@
 
     const allowedB = {
       daily: [1, 9, 24, 50],
+      emotional: [1, 9, 24, 50],
       work: [1, 9, 24, 50],
       couple: [1, 9, 24, 50],
       christmas: [1, 9, 24, 50],
@@ -574,7 +582,9 @@
     Object.keys(sets).forEach((key) => {
       const max = Math.max(...allowed[key]);
       sets[key].allowedCounts = allowed[key];
-      sets[key].defaultCount = allowed[key].includes(24) ? 24 : allowed[key][allowed[key].length - 1];
+      sets[key].defaultCount = allowed[key].includes(24)
+        ? 24
+        : allowed[key][allowed[key].length - 1];
 
       // 라벨 표시를 max에 맞춰 자동 변경
       sets[key].labels.ko = sets[key].labels.ko.replace(/\d+종/g, `${max}종`);
@@ -587,6 +597,70 @@
   }
 
   const EMOTION_SETS_INFO = buildEmotionSets(SET_POLICY);
+
+  // =========================
+  // ✅ 감성(Emotional) 50개 문구 데이터 추가
+  // - 실제 생성 로직에서 이 배열을 가져다 쓰도록 연결하면 됨
+  // - ja/zh는 우선 en으로 fallback 처리(나중에 번역 테이블 붙이면 완벽)
+  // =========================
+  const EMOTION_TEXTS = {
+    emotional: [
+      { id: "emo_001", ko: "괜찮아, 천천히 가도 돼요", en: "It’s okay, you can go slowly." },
+      { id: "emo_002", ko: "오늘은 그냥 쉬어도 돼요", en: "It’s okay to just rest today." },
+      { id: "emo_003", ko: "마음이 조금 무거운 날", en: "A day when my heart feels heavy." },
+      { id: "emo_004", ko: "괜히 눈물이 나는 밤", en: "A night when tears come for no reason." },
+      { id: "emo_005", ko: "보고 싶어서 더 조용해져요", en: "I get quieter because I miss you." },
+      { id: "emo_006", ko: "말 없이 옆에 있을게요", en: "I’ll stay by your side, quietly." },
+      { id: "emo_007", ko: "괜찮은 척이 제일 어렵죠", en: "Pretending to be okay is the hardest." },
+      { id: "emo_008", ko: "오늘도 잘 버텼어요", en: "You held on well today." },
+      { id: "emo_009", ko: "따뜻한 말 한 마디가 필요해요", en: "I need a warm word." },
+      { id: "emo_010", ko: "내일은 조금 더 나아지길", en: "Hope tomorrow feels a bit better." },
+
+      { id: "emo_011", ko: "잠깐만… 숨 고를게요", en: "Just a moment… let me catch my breath." },
+      { id: "emo_012", ko: "마음이 빈 것 같아요", en: "My heart feels empty." },
+      { id: "emo_013", ko: "괜히 멍해지는 시간", en: "Time when I go blank." },
+      { id: "emo_014", ko: "생각이 너무 많아졌어요", en: "My thoughts got too loud." },
+      { id: "emo_015", ko: "이 감정, 이름이 뭘까요", en: "What do you call this feeling?" },
+      { id: "emo_016", ko: "조용히 위로받고 싶어요", en: "I want quiet comfort." },
+      { id: "emo_017", ko: "괜찮아질 때까지", en: "Until it gets better." },
+      { id: "emo_018", ko: "오늘의 나를 안아주기", en: "Hugging myself today." },
+      { id: "emo_019", ko: "잘하고 있어요, 진짜로", en: "You’re doing well, truly." },
+      { id: "emo_020", ko: "말하지 않아도 알아요", en: "I know even without words." },
+
+      { id: "emo_021", ko: "괜히 마음이 시큰해요", en: "My heart aches for no reason." },
+      { id: "emo_022", ko: "조금만 더 버텨볼게요", en: "I’ll hold on a little more." },
+      { id: "emo_023", ko: "위로가 필요한 순간", en: "A moment that needs comfort." },
+      { id: "emo_024", ko: "괜찮다고 말해줘요", en: "Tell me it’s okay." },
+      { id: "emo_025", ko: "나도 나를 달래는 중", en: "I’m soothing myself too." },
+      { id: "emo_026", ko: "괜히 서러워요", en: "I feel oddly sad." },
+      { id: "emo_027", ko: "마음이 바람에 흔들려요", en: "My heart sways like the wind." },
+      { id: "emo_028", ko: "가끔은 울어도 돼요", en: "Sometimes it’s okay to cry." },
+      { id: "emo_029", ko: "나를 조금 더 아껴주기", en: "Being kinder to myself." },
+      { id: "emo_030", ko: "지금은 쉬는 게 답", en: "Rest is the answer right now." },
+
+      { id: "emo_031", ko: "괜히 생각나서", en: "Because you crossed my mind." },
+      { id: "emo_032", ko: "그리움이 길어지는 중", en: "Missing you is getting longer." },
+      { id: "emo_033", ko: "조용한 응원 보낼게요", en: "Sending you a quiet cheer." },
+      { id: "emo_034", ko: "오늘의 하늘이 참 예뻐요", en: "The sky is really pretty today." },
+      { id: "emo_035", ko: "따뜻한 차 한 잔 어때요", en: "How about a warm cup of tea?" },
+      { id: "emo_036", ko: "마음이 조금 녹았어요", en: "My heart softened a little." },
+      { id: "emo_037", ko: "괜히 미안해지는 날", en: "A day I feel sorry for no reason." },
+      { id: "emo_038", ko: "그냥… 고마워요", en: "Just… thank you." },
+      { id: "emo_039", ko: "오늘은 내가 나를 칭찬해", en: "Today I praise myself." },
+      { id: "emo_040", ko: "작은 행복을 주웠어요", en: "I picked up a small happiness." },
+
+      { id: "emo_041", ko: "마음속 파도가 잔잔해졌어요", en: "The waves in my heart calmed down." },
+      { id: "emo_042", ko: "괜찮은 척… 조금 지쳤어요", en: "Pretending I’m okay… I’m tired." },
+      { id: "emo_043", ko: "괜히 혼자가 된 기분", en: "Feeling alone for no reason." },
+      { id: "emo_044", ko: "말 한 마디가 큰 힘", en: "One word can be a big 힘." },
+      { id: "emo_045", ko: "오늘도 수고했어요", en: "You worked hard today." },
+      { id: "emo_046", ko: "잘 자요, 좋은 꿈 꿔요", en: "Sleep well, have sweet dreams." },
+      { id: "emo_047", ko: "내일의 나에게 맡길게요", en: "I’ll leave it to tomorrow’s me." },
+      { id: "emo_048", ko: "천천히, 다 괜찮아질 거예요", en: "Slowly, everything will be okay." },
+      { id: "emo_049", ko: "가끔은 멈춰도 돼요", en: "Sometimes it’s okay to stop." },
+      { id: "emo_050", ko: "당신은 충분히 소중해요", en: "You are more than enough." }
+    ]
+  };
 
   // 배경 테마 (✅ 투명 배경 포함)
   const THEMES_INFO = {
@@ -721,6 +795,7 @@
     CHARACTER_TREE,
     DETAIL_LABELS,
     EMOTION_SETS_INFO,
+    EMOTION_TEXTS, // ✅ 감성 50개 포함
     THEMES_INFO,
     OUTFIT_INFO,
     COLOR_INFO,
@@ -732,6 +807,9 @@
       SET_POLICY,
       allowedCountsBySet: Object.fromEntries(
         Object.entries(EMOTION_SETS_INFO).map(([k, v]) => [k, v.allowedCounts])
+      ),
+      emotionTextCounts: Object.fromEntries(
+        Object.entries(EMOTION_TEXTS).map(([k, arr]) => [k, arr.length])
       )
     }
   };
