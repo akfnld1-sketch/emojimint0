@@ -4,138 +4,49 @@ const I18N = EMO_DATA.I18N || {};
 "use strict";
 
 (function () {
-  const API_BASE = ""; // 같은 도메인에서 API 호출
+  const API_BASE = ""; // 같은 도메인에서 API 호출 (Render 같은 서버 붙일 때 사용)
 
-  const {
-    I18N,
-    COUNT_OPTIONS,
-    CHARACTER_TREE,
-    DETAIL_LABELS, // 다국어 세분화 라벨
-    EMOTION_SETS_INFO,
-    THEMES_INFO,
-    OUTFIT_INFO,
-    COLOR_INFO
-  } = window.EMOTIMINT_DATA;
+  // ✅ 0) 안전 가드: 데이터가 없으면 터지지 않게
+  const EMO_DATA = window.EMOTIMINT_DATA || null;
+  if (!EMO_DATA) {
+    console.error("[EmotiMint] window.EMOTIMINT_DATA가 없습니다. data.js 로드 순서를 확인하세요.");
+    // 최소한 UI가 완전히 죽지 않게 return
+    return;
+  }
+
+  // ✅ 구조분해도 안전하게 (없으면 기본값)
+  const I18N = EMO_DATA.I18N || {};
+  const COUNT_OPTIONS = Array.isArray(EMO_DATA.COUNT_OPTIONS) ? EMO_DATA.COUNT_OPTIONS : [9, 14, 24, 36, 50];
+  const CHARACTER_TREE = EMO_DATA.CHARACTER_TREE || {};
+  const DETAIL_LABELS = EMO_DATA.DETAIL_LABELS || {};
+  const EMOTION_SETS_INFO = EMO_DATA.EMOTION_SETS_INFO || {};
+  const THEMES_INFO = EMO_DATA.THEMES_INFO || {};
+  const OUTFIT_INFO = EMO_DATA.OUTFIT_INFO || {};
+  const COLOR_INFO = EMO_DATA.COLOR_INFO || {};
 
   // ─────────────────────────────────────────────
   // 1. 컨셉 스타일 & 소품 정의 (이 파일 안에서만 사용)
   // ─────────────────────────────────────────────
 
-  // 위에서 보여준 4가지 샘플 시트 기반 컨셉
   const CONCEPT_STYLES = {
-    auto: {
-      id: "auto",
-      labels: {
-        ko: "선택 안 함 (기본 컨셉)",
-        en: "No override (default concept)"
-      }
-    },
-    // 1) 손글씨 단어 + 작은 아이콘 스타일 (첫 번째 이미지)
-    words_emotion: {
-      id: "words_emotion",
-      labels: {
-        ko: "손글씨 단어 이모티콘",
-        en: "Handwritten words & doodles"
-      }
-    },
-    // 2) 하트 들고 있는 곰돌이 응원 스타일 (두 번째 이미지)
-    bear_love: {
-      id: "bear_love",
-      labels: {
-        ko: "하트 곰돌이 응원 스타일",
-        en: "Heart bear cheering style"
-      }
-    },
-    // 3) 말 많고 리액션 많은 햄스터 스타일 (세 번째 이미지)
-    hamster_reaction: {
-      id: "hamster_reaction",
-      labels: {
-        ko: "리액션 햄스터 스타일",
-        en: "Reaction hamster style"
-      }
-    },
-    // 4) 말랑한 몽글이 캐릭터 + 정중 멘트 스타일 (네 번째 이미지)
-    blob_soft: {
-      id: "blob_soft",
-      labels: {
-        ko: "말랑 몽글이 정중 스타일",
-        en: "Soft blob polite style"
-      }
-    }
+    auto: { id: "auto", labels: { ko: "선택 안 함 (기본 컨셉)", en: "No override (default concept)" } },
+    words_emotion: { id: "words_emotion", labels: { ko: "손글씨 단어 이모티콘", en: "Handwritten words & doodles" } },
+    bear_love: { id: "bear_love", labels: { ko: "하트 곰돌이 응원 스타일", en: "Heart bear cheering style" } },
+    hamster_reaction: { id: "hamster_reaction", labels: { ko: "리액션 햄스터 스타일", en: "Reaction hamster style" } },
+    blob_soft: { id: "blob_soft", labels: { ko: "말랑 몽글이 정중 스타일", en: "Soft blob polite style" } }
   };
 
-  // 소품 / 물건 리스트
   const PROP_ITEMS = {
-    auto: {
-      id: "auto",
-      labels: {
-        ko: "소품 없음 (기본 연출)",
-        en: "No props (default)"
-      }
-    },
-    heart_balloon: {
-      id: "heart_balloon",
-      labels: {
-        ko: "하트 풍선 / 하트 뭉치",
-        en: "Heart balloons"
-      }
-    },
-    bouquet: {
-      id: "bouquet",
-      labels: {
-        ko: "꽃다발",
-        en: "Flower bouquet"
-      }
-    },
-    coffee: {
-      id: "coffee",
-      labels: {
-        ko: "커피 / 음료 컵",
-        en: "Coffee cup"
-      }
-    },
-    gift_box: {
-      id: "gift_box",
-      labels: {
-        ko: "선물 상자",
-        en: "Gift box"
-      }
-    },
-    cake: {
-      id: "cake",
-      labels: {
-        ko: "케이크 / 축하 케이크",
-        en: "Celebration cake"
-      }
-    },
-    cheer_board: {
-      id: "cheer_board",
-      labels: {
-        ko: "응원 피켓 / 메시지 보드",
-        en: "Cheering sign board"
-      }
-    },
-    blanket: {
-      id: "blanket",
-      labels: {
-        ko: "담요 / 이불",
-        en: "Blanket"
-      }
-    },
-    medicine: {
-      id: "medicine",
-      labels: {
-        ko: "약 / 구급 상자",
-        en: "Medicine / first-aid kit"
-      }
-    },
-    money_envelope: {
-      id: "money_envelope",
-      labels: {
-        ko: "돈 봉투 / 보너스 봉투",
-        en: "Money envelope"
-      }
-    }
+    auto: { id: "auto", labels: { ko: "소품 없음 (기본 연출)", en: "No props (default)" } },
+    heart_balloon: { id: "heart_balloon", labels: { ko: "하트 풍선 / 하트 뭉치", en: "Heart balloons" } },
+    bouquet: { id: "bouquet", labels: { ko: "꽃다발", en: "Flower bouquet" } },
+    coffee: { id: "coffee", labels: { ko: "커피 / 음료 컵", en: "Coffee cup" } },
+    gift_box: { id: "gift_box", labels: { ko: "선물 상자", en: "Gift box" } },
+    cake: { id: "cake", labels: { ko: "케이크 / 축하 케이크", en: "Celebration cake" } },
+    cheer_board: { id: "cheer_board", labels: { ko: "응원 피켓 / 메시지 보드", en: "Cheering sign board" } },
+    blanket: { id: "blanket", labels: { ko: "담요 / 이불", en: "Blanket" } },
+    medicine: { id: "medicine", labels: { ko: "약 / 구급 상자", en: "Medicine / first-aid kit" } },
+    money_envelope: { id: "money_envelope", labels: { ko: "돈 봉투 / 보너스 봉투", en: "Money envelope" } }
   };
 
   // ─────────────────────────────────────────────
@@ -145,9 +56,12 @@ const I18N = EMO_DATA.I18N || {};
   function detailLabel(id, lang) {
     const info = DETAIL_LABELS[id];
     if (!info) return id;
-
     return info[lang] || info.ko || Object.values(info)[0] || id;
   }
+
+  // ─────────────────────────────────────────────
+  // 3. state + DOM
+  // ─────────────────────────────────────────────
 
   const state = {
     lang: "ko",
@@ -156,14 +70,13 @@ const I18N = EMO_DATA.I18N || {};
     selectedDetailId: null,
     selectedEmotionSetId: "daily",
     selectedThemeId: "white",
-    selectedCount: COUNT_OPTIONS[2], // 기본 24
+    selectedCount: COUNT_OPTIONS[2] ?? 24,
     selectedOutfitId: "auto",
     selectedColorId: "auto",
     selectedConceptStyleId: "auto",
     selectedPropItemId: "auto"
   };
 
-  // DOM 헬퍼
   const $ = (id) => document.getElementById(id);
 
   const categorySelect = $("categorySelect");
@@ -180,19 +93,21 @@ const I18N = EMO_DATA.I18N || {};
   const copyAllBtn = $("copyAllBtn");
   const resultsContainer = $("resultsContainer");
 
+  // ✅ 필수 DOM이 없으면 조용히 종료
+  if (!categorySelect || !subCategorySelect || !detailSelect || !emotionSelect || !countSelect || !themeSelect || !generateBtn || !copyAllBtn || !resultsContainer) {
+    console.error("[EmotiMint] 필수 DOM 요소를 찾지 못했습니다. index.html의 id들을 확인하세요.");
+    return;
+  }
+
   // ─────────────────────────────────────────────
-  // 3. 다국어 유틸
+  // 4. i18n
   // ─────────────────────────────────────────────
 
   function getI18nValue(key) {
-    const pack = I18N[state.lang] || I18N.ko;
-    if (pack && Object.prototype.hasOwnProperty.call(pack, key)) {
-      return pack[key];
-    }
-    if (I18N.ko && Object.prototype.hasOwnProperty.call(I18N.ko, key)) {
-      return I18N.ko[key];
-    }
-    return null; // 없는 키면 null
+    const pack = I18N[state.lang] || I18N.ko || {};
+    if (Object.prototype.hasOwnProperty.call(pack, key)) return pack[key];
+    if (I18N.ko && Object.prototype.hasOwnProperty.call(I18N.ko, key)) return I18N.ko[key];
+    return null;
   }
 
   function t(key) {
@@ -204,7 +119,6 @@ const I18N = EMO_DATA.I18N || {};
     document.querySelectorAll("[data-i18n]").forEach((el) => {
       const key = el.getAttribute("data-i18n");
       const value = getI18nValue(key);
-      // I18N에 없는 키는 건드리지 않는다 (guide.body, 새 라벨 등은 그대로 둠)
       if (value == null) return;
       el.textContent = value;
     });
@@ -216,7 +130,7 @@ const I18N = EMO_DATA.I18N || {};
   }
 
   // ─────────────────────────────────────────────
-  // 4. 셀렉트 박스 렌더링
+  // 5. Select 렌더
   // ─────────────────────────────────────────────
 
   function renderCategoryOptions() {
@@ -248,7 +162,7 @@ const I18N = EMO_DATA.I18N || {};
     placeholder.textContent = "—";
     subCategorySelect.appendChild(placeholder);
 
-    Object.values(cat.subCategories).forEach((sub) => {
+    Object.values(cat.subCategories || {}).forEach((sub) => {
       const opt = document.createElement("option");
       opt.value = sub.id;
       opt.textContent = labelFrom(sub);
@@ -262,7 +176,7 @@ const I18N = EMO_DATA.I18N || {};
     if (!state.selectedCategoryId || !state.selectedSubCategoryId) return;
 
     const cat = CHARACTER_TREE[state.selectedCategoryId];
-    const sub = cat?.subCategories[state.selectedSubCategoryId];
+    const sub = cat?.subCategories?.[state.selectedSubCategoryId];
     if (!sub) return;
 
     const placeholder = document.createElement("option");
@@ -270,7 +184,7 @@ const I18N = EMO_DATA.I18N || {};
     placeholder.textContent = "—";
     detailSelect.appendChild(placeholder);
 
-    sub.details.forEach((detailId) => {
+    (sub.details || []).forEach((detailId) => {
       const opt = document.createElement("option");
       opt.value = detailId;
       opt.textContent = detailLabel(detailId, state.lang);
@@ -336,7 +250,6 @@ const I18N = EMO_DATA.I18N || {};
     });
   }
 
-  // ✅ 컨셉 스타일 셀렉트
   function renderConceptStyleOptions() {
     if (!conceptStyleSelect) return;
     conceptStyleSelect.innerHTML = "";
@@ -349,7 +262,6 @@ const I18N = EMO_DATA.I18N || {};
     });
   }
 
-  // ✅ 소품 셀렉트
   function renderPropOptions() {
     if (!propSelect) return;
     propSelect.innerHTML = "";
@@ -376,7 +288,7 @@ const I18N = EMO_DATA.I18N || {};
   }
 
   // ─────────────────────────────────────────────
-  // 5. 이벤트 바인딩
+  // 6. 이벤트 바인딩
   // ─────────────────────────────────────────────
 
   categorySelect.addEventListener("change", () => {
@@ -414,43 +326,37 @@ const I18N = EMO_DATA.I18N || {};
       state.selectedOutfitId = outfitSelect.value || "auto";
     });
   }
-
   if (colorSelect) {
     colorSelect.addEventListener("change", () => {
       state.selectedColorId = colorSelect.value || "auto";
     });
   }
-
   if (conceptStyleSelect) {
     conceptStyleSelect.addEventListener("change", () => {
       state.selectedConceptStyleId = conceptStyleSelect.value || "auto";
     });
   }
-
   if (propSelect) {
     propSelect.addEventListener("change", () => {
       state.selectedPropItemId = propSelect.value || "auto";
     });
   }
 
-  // 언어 버튼
   document.querySelectorAll(".lang-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const lang = btn.getAttribute("data-lang");
       state.lang = lang;
 
-      document
-        .querySelectorAll(".lang-btn")
-        .forEach((b) => b.classList.remove("active"));
+      document.querySelectorAll(".lang-btn").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
 
       applyStaticI18n();
-      renderAllSelects(); // 언어 바뀌면 전체 셀렉트 다시 그리기
+      renderAllSelects();
     });
   });
 
   // ─────────────────────────────────────────────
-  // 6. 결과 렌더링
+  // 7. 결과 렌더링
   // ─────────────────────────────────────────────
 
   function renderPromptList(prompts) {
@@ -501,11 +407,8 @@ const I18N = EMO_DATA.I18N || {};
     });
   }
 
-  // 전체 복사
   copyAllBtn.addEventListener("click", () => {
-    const texts = Array.from(
-      resultsContainer.querySelectorAll(".result-text")
-    )
+    const texts = Array.from(resultsContainer.querySelectorAll(".result-text"))
       .map((ta) => ta.value.trim())
       .filter((v) => v.length > 0);
 
@@ -521,7 +424,89 @@ const I18N = EMO_DATA.I18N || {};
   });
 
   // ─────────────────────────────────────────────
-  // 7. API 호출
+  // 8. 로컬 생성 (GitHub Pages용 fallback)
+  // ─────────────────────────────────────────────
+
+  function getSelectedMeta() {
+    const cat = CHARACTER_TREE[state.selectedCategoryId];
+    const sub = cat?.subCategories?.[state.selectedSubCategoryId];
+    const detailName = state.selectedDetailId ? detailLabel(state.selectedDetailId, state.lang) : "";
+    const emotionSet = EMOTION_SETS_INFO[state.selectedEmotionSetId];
+    const theme = THEMES_INFO[state.selectedThemeId];
+    const outfit = OUTFIT_INFO[state.selectedOutfitId] || OUTFIT_INFO.auto || { id: "auto", labels: { ko: "기본", en: "default" } };
+    const color = COLOR_INFO[state.selectedColorId] || COLOR_INFO.auto || { id: "auto", labels: { ko: "기본", en: "default" } };
+    const concept = CONCEPT_STYLES[state.selectedConceptStyleId] || CONCEPT_STYLES.auto;
+    const prop = PROP_ITEMS[state.selectedPropItemId] || PROP_ITEMS.auto;
+
+    return {
+      categoryName: cat ? labelFrom(cat) : "",
+      subName: sub ? labelFrom(sub) : "",
+      detailName,
+      emotionSet,
+      theme,
+      outfit,
+      color,
+      concept,
+      prop
+    };
+  }
+
+  function getEmotionItems(setId) {
+    const set = EMOTION_SETS_INFO[setId];
+    // data.js 쪽 구조가 다를 수 있어서 최대한 유연하게
+    // 가능한 키들: set.items / set.emotions / set.list
+    const items = set?.items || set?.emotions || set?.list || [];
+    return Array.isArray(items) ? items : [];
+  }
+
+  function buildOnePrompt(meta, emotionItem, idx) {
+    // emotionItem도 구조가 다를 수 있어서 유연하게
+    const koLabel = emotionItem?.ko || emotionItem?.labelKo || emotionItem?.nameKo || emotionItem?.label || `감정${idx + 1}`;
+    const enLabel = emotionItem?.en || emotionItem?.labelEn || emotionItem?.nameEn || "";
+
+    const outfitText = meta.outfit?.id !== "auto" ? labelFrom(meta.outfit) : "";
+    const colorText = meta.color?.id !== "auto" ? labelFrom(meta.color) : "";
+    const conceptText = meta.concept?.id !== "auto" ? labelFrom(meta.concept) : "";
+    const propText = meta.prop?.id !== "auto" ? labelFrom(meta.prop) : "";
+
+    const themeText = meta.theme ? labelFrom(meta.theme) : "";
+
+    // ✅ 여기서 “마스터 프롬프트”는 공개하지 않고, UI용 조합만 생성
+    const lines = [
+      `Character: ${meta.detailName || meta.subName || meta.categoryName}`,
+      `Emotion: ${state.lang === "ko" ? koLabel : (enLabel || koLabel)}`,
+      themeText ? `Background: ${themeText}` : "",
+      outfitText ? `Outfit: ${outfitText}` : "",
+      colorText ? `Color: ${colorText}` : "",
+      conceptText ? `Concept style: ${conceptText}` : "",
+      propText ? `Prop: ${propText}` : "",
+      "",
+      `Style: kakao emoji style, clean thick lineart, consistent line thickness, centered composition, white/clean background, no text, no logo, no watermark`
+    ].filter(Boolean);
+
+    return {
+      koLabel: state.lang === "ko" ? koLabel : (enLabel || koLabel),
+      text: lines.join("\n")
+    };
+  }
+
+  function generatePromptsLocal() {
+    const meta = getSelectedMeta();
+    const emotionItems = getEmotionItems(state.selectedEmotionSetId);
+
+    // 감정 세트에 리스트가 없으면, count만큼 더미 라벨 생성
+    const baseList = emotionItems.length ? emotionItems : Array.from({ length: state.selectedCount }, (_, i) => ({ ko: `감정 ${i + 1}` }));
+
+    const prompts = [];
+    for (let i = 0; i < state.selectedCount; i++) {
+      const item = baseList[i % baseList.length];
+      prompts.push(buildOnePrompt(meta, item, i));
+    }
+    return prompts;
+  }
+
+  // ─────────────────────────────────────────────
+  // 9. API 호출 + 실패 시 로컬 fallback
   // ─────────────────────────────────────────────
 
   async function generatePrompts() {
@@ -534,6 +519,8 @@ const I18N = EMO_DATA.I18N || {};
       return;
     }
 
+    // ✅ GitHub Pages(정적)에서는 API가 없을 확률이 매우 높음
+    // 일단 API 시도하고, 실패/405/404면 로컬 생성으로 자동 전환
     const payload = {
       detailId: state.selectedDetailId,
       emotionSetId: state.selectedEmotionSetId,
@@ -552,24 +539,33 @@ const I18N = EMO_DATA.I18N || {};
         body: JSON.stringify(payload)
       });
 
+      // ❌ API가 없거나, Pages에서 405/404 나면 로컬로
       if (!res.ok) {
-        console.error("API status", res.status);
+        console.warn("[EmotiMint] API 호출 실패 → 로컬 생성 모드로 전환", res.status);
+        const prompts = generatePromptsLocal();
+        renderPromptList(prompts);
         return;
       }
 
       const data = await res.json();
       if (data && data.ok && Array.isArray(data.prompts)) {
         renderPromptList(data.prompts);
+        return;
       }
+
+      // API 응답 형식이 예상과 다르면 로컬로
+      console.warn("[EmotiMint] API 응답 형식 불일치 → 로컬 생성 모드로 전환");
+      renderPromptList(generatePromptsLocal());
     } catch (err) {
-      console.error("API error", err);
+      console.warn("[EmotiMint] API 에러 → 로컬 생성 모드로 전환", err);
+      renderPromptList(generatePromptsLocal());
     }
   }
 
   generateBtn.addEventListener("click", generatePrompts);
 
   // ─────────────────────────────────────────────
-  // 8. 초기화
+  // 10. 초기화
   // ─────────────────────────────────────────────
 
   function init() {

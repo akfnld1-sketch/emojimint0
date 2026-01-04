@@ -5,17 +5,18 @@
     <title>EmotiMint Studio</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="./styles.css" />
-    <script src="./main.js"></script>
+
+    <!-- ❌ main.js를 head에서 로드하면 data.js보다 먼저 실행될 수 있음 -->
+    <!-- <script src="./main.js"></script> -->
   </head>
+
   <body>
     <div class="app-root">
       <header class="app-header">
         <div class="logo-area">
           <div class="logo-icon">😊</div>
           <div>
-            <div class="logo-title" data-i18n="app.title">
-              EmotiMint Studio
-            </div>
+            <div class="logo-title" data-i18n="app.title">EmotiMint Studio</div>
             <div class="logo-sub" data-i18n="app.subtitle">
               이모지 민트 프롬프트 생성기
             </div>
@@ -31,6 +32,7 @@
             <button class="lang-btn" data-lang="ja">JA</button>
             <button class="lang-btn" data-lang="zh">ZH</button>
           </div>
+
           <div class="nav-links">
             <a
               href="https://www.recraft.ai"
@@ -90,7 +92,7 @@
           </div>
         </section>
 
-        <!-- 고급 옵션 (옷 / 색상 / 컨셉 / 소품) -->
+        <!-- 고급 옵션 -->
         <section class="card card-advanced">
           <div class="card-header">
             <h2 data-i18n="section.advanced.title">고급 옵션 (옷 / 색상)</h2>
@@ -99,19 +101,16 @@
             </p>
           </div>
           <div class="card-body grid-2">
-            <!-- 의상 -->
             <div class="field">
               <label for="outfitSelect" data-i18n="labels.outfit">의상 스타일</label>
               <select id="outfitSelect"></select>
             </div>
 
-            <!-- 색상 -->
             <div class="field">
               <label for="colorSelect" data-i18n="labels.color">색상</label>
               <select id="colorSelect"></select>
             </div>
 
-            <!-- ✅ 컨셉 스타일 -->
             <div class="field">
               <label for="conceptStyleSelect" data-i18n="labels.conceptStyle">
                 컨셉 스타일
@@ -119,7 +118,6 @@
               <select id="conceptStyleSelect"></select>
             </div>
 
-            <!-- ✅ 소품 / 물건 -->
             <div class="field">
               <label for="propSelect" data-i18n="labels.propItem">
                 소품 / 물건
@@ -186,6 +184,7 @@
       </main>
     </div>
 
+    <!-- ✅ 스크립트는 맨 아래에서, data.js 먼저 → main.js 나중 -->
     <script src="./data.js"></script>
     <script src="./main.js"></script>
   </body>
